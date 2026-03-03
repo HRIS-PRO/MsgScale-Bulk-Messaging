@@ -1,0 +1,501 @@
+
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useRole } from '../RoleContext';
+
+interface Contact {
+  id: number;
+  name: string;
+  role: string;
+  avatar: string;
+  phone: string;
+  email: string;
+  groups: string[];
+  status: 'Active' | 'Unsubscribed' | 'Pending';
+  lastActive: string;
+}
+
+const initialContacts: Contact[] = [
+  {
+    id: 1,
+    name: 'Jane Cooper',
+    role: 'Marketing Lead',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADIZzp3fEtdV_iIri9ms_OvTV5xNvN2JLKesHWPIVE5RTCuE2fXpIWdc5-RC6ZbTsl4H5QeT0xQRuZg52ZBKQpHaWVgdyljA0Ui-yIXZVU9p5Z7pLmI5b1BRANnXvb3E3slY1u-cQ0Apqk4vFrEQ2HZZVgBHa2OuEFrfct9aA1SVreoeATplQwni9RqC3wJOMwti-L19QzuC6GyIeMA-GwLyW4_AX05Ex-xz0RwTXCUgju6ugMb-CAaQXoMqlDSuF61-u3mlQdp1Qs',
+    phone: '(555) 123-4567',
+    email: 'jane@example.com',
+    groups: ['VIP', 'Q3 Promo'],
+    status: 'Active',
+    lastActive: '2 mins ago',
+  },
+  {
+    id: 2,
+    name: 'Wade Warren',
+    role: 'Developer',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADZtYg6hsKLIiPRp6DLRhWrAH9_9uX0swGM6gTfANG-vgWaWFucrLDkJvGG848SfxjeHgOsDKjg1FwFvM2OdU3EtF1bGrH3q3G6ToV0aF5pQzRqaSoHkMkK3WI4V6-jT1ix7TbFFAzbjIAnaAvAWkKtX9AEPEc71TsGGs7t-u40uVAi-6qHRxd2pU7bnnjc9_2dxbMFTlKjIwhBeWa6wihPbcTRnUI7-I3NW_FqvFYOfUrhYn_eQt8yxdaQ_wmzrk87I-P3efv58Ga',
+    phone: '(555) 987-6543',
+    email: 'wade@example.com',
+    groups: ['Newsletter'],
+    status: 'Unsubscribed',
+    lastActive: 'Yesterday',
+  },
+  {
+    id: 3,
+    name: 'Esther Black',
+    role: 'Designer',
+    avatar: 'EB',
+    phone: '(555) 444-2323',
+    email: 'esther@example.com',
+    groups: ['Customers', 'Lead'],
+    status: 'Active',
+    lastActive: '3 days ago',
+  },
+  {
+    id: 4,
+    name: 'Cameron Williamson',
+    role: 'Sales',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDPoOZoCppj-05sEh2su4eKm3n6-0YGL0lxSgZEfjmn8p-z3TSb5ehSUCQ9SJyNo33heU9zF2fneDj-lc4yyGjAuzQ7UntzSbPJawqTQmK0PNRLiAgU_ryxTZkj8eYQi6cLbyHN70aazgy2qg_UdhqfEcBWFUvU0kDyUZ40BqM9n5CeW_4XbUzGJDqRPUPVQfZ01P_dS9n67-Emokiyw7vP5tjeB3f2-W2b030y2d7rTnkNvpjfxgMhQddYbaEL56HryaTPryVGZu_i',
+    phone: '(555) 777-8899',
+    email: 'cameron@example.com',
+    groups: ['Cold Outreach'],
+    status: 'Pending',
+    lastActive: 'Oct 24, 2023',
+  },
+];
+
+const Contacts = () => {
+  const navigate = useNavigate();
+  const { role } = useRole();
+  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+
+  const canEdit = role === 'Admin' || role === 'Manager' || role === 'Editor';
+  const isAdmin = role === 'Admin';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Contact; direction: 'asc' | 'desc' } | null>(null);
+  const [activeGroupFilter, setActiveGroupFilter] = useState<string>('All');
+  
+  // MODAL STATES
+  const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
+  const [visibility, setVisibility] = useState<'global' | 'workspace' | 'private'>('global');
+
+  // Computed Values
+  const allGroups = useMemo(() => {
+    const groups = new Set<string>(['All']);
+    contacts.forEach(c => c.groups.forEach(g => groups.add(g)));
+    return Array.from(groups);
+  }, [contacts]);
+
+  const filteredAndSortedContacts = useMemo(() => {
+    let result = contacts.filter(c => {
+      const matchesSearch = 
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.phone.includes(searchQuery);
+      
+      const matchesGroup = activeGroupFilter === 'All' || c.groups.includes(activeGroupFilter);
+      
+      return matchesSearch && matchesGroup;
+    });
+
+    if (sortConfig) {
+      result.sort((a, b) => {
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [contacts, searchQuery, sortConfig, activeGroupFilter]);
+
+  // Handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredAndSortedContacts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAndSortedContacts.map(c => c.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedIds(newSelected);
+  };
+
+  const handleSort = (key: keyof Contact) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const bulkAction = (action: string) => {
+    if (action === 'delete') {
+      setContacts(prev => prev.filter(c => !selectedIds.has(c.id)));
+      setSelectedIds(new Set());
+    }
+  };
+
+  return (
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto pb-20 animate-[fadeIn_0.3s_ease-out] theme-transition relative">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tight">Manage Contacts</h2>
+          <p className="text-slate-500 text-sm font-medium">View, filter, and organize your message recipients.</p>
+        </div>
+        <div className="flex gap-3">
+          {canEdit && (
+            <button 
+              onClick={() => navigate('/contacts/add')}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[18px]">person_add</span>
+              New Contact
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Advanced Filter Bar */}
+      <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-2xl p-4 flex flex-col lg:flex-row gap-4 items-center shadow-sm">
+        <div className="flex-1 w-full relative group">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+          <input 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-sm text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-400 shadow-inner"
+            placeholder="Filter by name, email, or phone number..."
+          />
+        </div>
+        
+        <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 scrollbar-hide">
+          {allGroups.map(group => (
+            <button
+              key={group}
+              onClick={() => setActiveGroupFilter(group)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${
+                activeGroupFilter === group 
+                ? 'bg-primary border-primary text-white' 
+                : 'bg-white dark:bg-[#111722] border-slate-200 dark:border-border-dark text-slate-500 hover:border-primary'
+              }`}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Captions: List Visibility & API Integration */}
+      <div className="space-y-3">
+        <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 animate-[fadeIn_0.4s_ease-out]">
+          <span className="material-symbols-outlined text-blue-500 dark:text-blue-400 text-2xl">info</span>
+          <div className="flex-1">
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              <span className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-xs mr-1">Global Contacts Enabled.</span> 
+              By default, all contacts added here are part of the global addressing list. You can limit visibility to just this workspace if needed.
+            </p>
+          </div>
+          {isAdmin && (
+            <button 
+              onClick={() => setIsVisibilityModalOpen(true)}
+              className="text-xs font-black text-primary uppercase tracking-widest hover:text-blue-600 hover:underline transition-all whitespace-nowrap italic"
+            >
+              Manage List Visibility
+            </button>
+          )}
+        </div>
+
+        <div className="bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/50 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 animate-[fadeIn_0.5s_ease-out]">
+          <span className="material-symbols-outlined text-violet-500 dark:text-violet-400 text-2xl">webhook</span>
+          <div className="flex-1">
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              <span className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-xs mr-1">API & Webhook Imports.</span> 
+              Contacts can also be imported via API or webhook events.
+            </p>
+          </div>
+          {isAdmin && (
+            <button 
+              onClick={() => navigate('/contacts/integrations')}
+              className="text-xs font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest hover:text-violet-700 transition-all whitespace-nowrap italic"
+            >
+              Set Up API/Webhook Integrations
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 animate-[slideInDown_0.2s_ease-out]">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary">check_circle</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">{selectedIds.size} contacts selected</span>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => bulkAction('group')}
+              className="px-4 py-2 rounded-lg bg-white dark:bg-surface-dark text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-border-dark hover:border-primary transition-all flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[16px]">group_add</span> Add to Group
+            </button>
+            <button 
+              onClick={() => bulkAction('delete')}
+              className="px-4 py-2 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-200 dark:border-red-500/20 hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[16px]">delete</span> Delete
+            </button>
+            <button 
+              onClick={() => setSelectedIds(new Set())}
+              className="px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-slate-900 dark:hover:text-white transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Results Container */}
+      <div className="rounded-2xl bg-white dark:bg-[#1e293b]/30 border border-slate-200 dark:border-border-dark shadow-sm dark:shadow-2xl overflow-hidden flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#111722]/50">
+                <th className="px-6 py-5 w-12">
+                   <button 
+                    onClick={toggleSelectAll}
+                    className={`size-5 rounded border flex items-center justify-center transition-all ${
+                      selectedIds.size === filteredAndSortedContacts.length && filteredAndSortedContacts.length > 0
+                        ? 'bg-primary border-primary' 
+                        : 'border-slate-300 dark:border-slate-600 hover:border-primary'
+                    }`}
+                   >
+                     {selectedIds.size === filteredAndSortedContacts.length && filteredAndSortedContacts.length > 0 && 
+                      <span className="material-symbols-outlined text-white text-[14px] font-black">check</span>
+                     }
+                   </button>
+                </th>
+                <th 
+                  className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors group"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Contact Name
+                    <span className={`material-symbols-outlined text-[16px] transition-opacity ${sortConfig?.key === 'name' ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-50'}`}>
+                      {sortConfig?.direction === 'desc' ? 'arrow_downward' : 'arrow_upward'}
+                    </span>
+                  </div>
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Phone & Email</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Groups</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-border-dark/50">
+              {filteredAndSortedContacts.map((contact) => (
+                <tr key={contact.id} className={`group hover:bg-slate-50 dark:hover:bg-white/5 transition-all ${selectedIds.has(contact.id) ? 'bg-primary/5' : ''}`}>
+                  <td className="px-6 py-5">
+                    <button 
+                      onClick={() => toggleSelect(contact.id)}
+                      className={`size-5 rounded border flex items-center justify-center transition-all ${
+                        selectedIds.has(contact.id) ? 'bg-primary border-primary' : 'border-slate-200 dark:border-border-dark group-hover:border-primary'
+                      }`}
+                    >
+                      {selectedIds.has(contact.id) && <span className="material-symbols-outlined text-white text-[14px] font-black">check</span>}
+                    </button>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      {contact.avatar.length === 2 ? (
+                        <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-sm shadow-inner">
+                          {contact.avatar}
+                        </div>
+                      ) : (
+                        <img src={contact.avatar} className="size-10 rounded-xl border border-slate-200 dark:border-border-dark object-cover shadow-sm" alt="" />
+                      )}
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white italic tracking-tight">{contact.name}</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{contact.role}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex flex-col gap-1.5">
+                       <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                         <span className="material-symbols-outlined text-[16px] text-primary">call</span>
+                         {contact.phone}
+                       </p>
+                       <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                         <span className="material-symbols-outlined text-[16px]">mail</span>
+                         {contact.email}
+                       </p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex flex-wrap gap-2">
+                      {contact.groups.map((group, idx) => (
+                        <span key={idx} className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest shadow-sm">
+                          {group}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                      contact.status === 'Active' ? 'bg-green-500/10 text-green-600 dark:text-green-500 border-green-500/20' : 
+                      contact.status === 'Unsubscribed' ? 'bg-red-500/10 text-red-600 dark:text-red-500 border-red-500/20' :
+                      'bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-500/20'
+                    }`}>
+                      <span className={`size-1.5 rounded-full ${
+                        contact.status === 'Active' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 
+                        contact.status === 'Unsubscribed' ? 'bg-red-500' : 
+                        'bg-yellow-500'
+                      }`}></span>
+                      {contact.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-slate-900 dark:text-white italic leading-none">{contact.lastActive.split(' ')[0]}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{contact.lastActive.split(' ').slice(1).join(' ')}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 text-right">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all" title="Edit">
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination & Summary */}
+        <div className="p-6 flex flex-col md:flex-row items-center justify-between border-t border-slate-100 dark:border-border-dark bg-slate-50 dark:bg-[#111722]/30 gap-4">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
+            Showing <span className="text-slate-900 dark:text-white">{filteredAndSortedContacts.length}</span> of <span className="text-slate-900 dark:text-white">{contacts.length}</span> Total Results
+          </div>
+          <div className="flex gap-2">
+            <button className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary transition-all">
+              <span className="material-symbols-outlined text-lg">chevron_left</span>
+            </button>
+            <button className="size-10 rounded-xl bg-primary text-white text-xs font-black shadow-lg shadow-primary/20">1</button>
+            <button className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary transition-all">
+              <span className="material-symbols-outlined text-lg">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MANAGE LIST VISIBILITY MODAL */}
+      {isVisibilityModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsVisibilityModalOpen(false)}></div>
+          <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark shadow-2xl animate-[zoomIn_0.2s_ease-out] overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex items-center justify-between bg-slate-50 dark:bg-[#111722]/50">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white italic tracking-tight uppercase tracking-widest text-sm">Manage List Visibility</h3>
+              <button 
+                onClick={() => setIsVisibilityModalOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-background-dark hover:text-slate-600 dark:hover:text-white transition-all"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <p className="text-sm text-slate-500 font-medium leading-relaxed italic uppercase tracking-tighter">
+                Control who can see and access the contacts in this list. Changes apply immediately to all workspace members.
+              </p>
+              
+              <div className="space-y-4">
+                {/* Global Access */}
+                <div 
+                  onClick={() => setVisibility('global')}
+                  className={`relative flex items-start p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                    visibility === 'global' ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-border-dark bg-white dark:bg-[#111722]'
+                  }`}
+                >
+                  <div className="flex h-6 items-center">
+                    <div className={`size-5 rounded-full border-2 flex items-center justify-center ${visibility === 'global' ? 'border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                      {visibility === 'global' && <div className="size-2.5 rounded-full bg-primary animate-[zoomIn_0.15s_ease-out]"></div>}
+                    </div>
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <label className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest italic">Global Access</label>
+                      <span className="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 text-[9px] font-black text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 uppercase tracking-widest">Recommended</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">All members of the organization can view and edit these contacts. Best for shared company directories.</p>
+                  </div>
+                </div>
+
+                {/* Workspace Only */}
+                <div 
+                  onClick={() => setVisibility('workspace')}
+                  className={`relative flex items-start p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                    visibility === 'workspace' ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-border-dark bg-white dark:bg-[#111722]'
+                  }`}
+                >
+                  <div className="flex h-6 items-center">
+                    <div className={`size-5 rounded-full border-2 flex items-center justify-center ${visibility === 'workspace' ? 'border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                      {visibility === 'workspace' && <div className="size-2.5 rounded-full bg-primary animate-[zoomIn_0.15s_ease-out]"></div>}
+                    </div>
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <label className="block text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest italic mb-1">Workspace Only</label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Restricted to members of <span className="text-slate-900 dark:text-white font-black">Workspace A</span>. Good for department-specific contacts.</p>
+                  </div>
+                </div>
+
+                {/* Private List */}
+                <div 
+                  onClick={() => setVisibility('private')}
+                  className={`relative flex items-start p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                    visibility === 'private' ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-border-dark bg-white dark:bg-[#111722]'
+                  }`}
+                >
+                  <div className="flex h-6 items-center">
+                    <div className={`size-5 rounded-full border-2 flex items-center justify-center ${visibility === 'private' ? 'border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                      {visibility === 'private' && <div className="size-2.5 rounded-full bg-primary animate-[zoomIn_0.15s_ease-out]"></div>}
+                    </div>
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <label className="block text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest italic mb-1">Private List</label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Only you and workspace admins can see this list. Useful for sensitive client data.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 dark:border-border-dark flex justify-end gap-3">
+                <button 
+                  onClick={() => setIsVisibilityModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl text-slate-500 font-black text-xs uppercase tracking-widest hover:text-slate-900 dark:hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => setIsVisibilityModalOpen(false)}
+                  className="px-8 py-2.5 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/30 hover:bg-blue-600 transition-all"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Contacts;
