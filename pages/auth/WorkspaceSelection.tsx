@@ -85,12 +85,36 @@ const WorkspaceSelection = ({ onSelect }: { onSelect: () => void }) => {
             <p className="text-text-secondary text-lg">Choose an organization to manage your campaigns</p>
           </div>
           {canCreateWorkspace && (
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-primary text-white px-6 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-primary/30 flex items-center gap-2 hover:bg-primary/90 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                CREATE NEW WORKSPACE
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('msgscale_token');
+                  window.location.href = '/login';
+                }}
+                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">logout</span>
+                Log Out
+              </button>
+            </div>
+          )}
+          {!canCreateWorkspace && (
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-primary text-white px-6 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-primary/30 flex items-center gap-2 hover:bg-primary/90 transition-all active:scale-95"
+              onClick={() => {
+                localStorage.removeItem('msgscale_token');
+                window.location.href = '/login';
+              }}
+              className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              CREATE NEW WORKSPACE
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+              Log Out
             </button>
           )}
         </div>
