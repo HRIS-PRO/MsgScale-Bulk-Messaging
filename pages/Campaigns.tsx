@@ -23,7 +23,7 @@ const Campaigns = () => {
     if (!token || !selectedWorkspace?.id) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/campaigns/${selectedWorkspace.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -54,7 +54,7 @@ const Campaigns = () => {
     if (!selectedCampaign || isProcessing) return;
     setIsProcessing(true);
     try {
-      const response = await fetch(`/api/campaigns/${selectedWorkspace?.id}/${selectedCampaign.id}/review`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace?.id}/${selectedCampaign.id}/review`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,7 +78,7 @@ const Campaigns = () => {
     if (!selectedCampaign || isProcessing) return;
     setIsProcessing(true);
     try {
-      const response = await fetch(`/api/campaigns/${selectedWorkspace?.id}/${selectedCampaign.id}/review`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace?.id}/${selectedCampaign.id}/review`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -102,7 +102,7 @@ const Campaigns = () => {
     if (!window.confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
 
     try {
-      const response = await fetch(`/api/campaigns/${selectedWorkspace?.id}/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace?.id}/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

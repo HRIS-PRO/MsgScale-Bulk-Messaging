@@ -103,7 +103,7 @@ const Templates = () => {
   const fetchTemplates = async () => {
     if (!token) return;
     try {
-      const response = await fetch('/api/templates', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/templates`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -149,7 +149,7 @@ const Templates = () => {
 
     setIsSaving(true);
     const method = currentTemplate.id ? 'PATCH' : 'POST';
-    const url = currentTemplate.id ? `/api/templates/${currentTemplate.id}` : '/api/templates';
+    const url = currentTemplate.id ? `${import.meta.env.VITE_API_URL}/templates/${currentTemplate.id}` : `${import.meta.env.VITE_API_URL}/templates`;
 
     try {
       const response = await fetch(url, {
@@ -179,7 +179,7 @@ const Templates = () => {
   const handleDelete = async (id: string) => {
     if (!token || !window.confirm('Are you sure you want to delete this template?')) return;
     try {
-      const response = await fetch(`/api/templates/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/templates/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

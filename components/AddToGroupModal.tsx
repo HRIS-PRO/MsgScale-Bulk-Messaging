@@ -29,7 +29,7 @@ const AddToGroupModal: React.FC<AddToGroupModalProps> = ({ isOpen, onClose, cust
         const fetchGroups = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/groups`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/groups`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -58,7 +58,7 @@ const AddToGroupModal: React.FC<AddToGroupModalProps> = ({ isOpen, onClose, cust
         setIsSaving(true);
         setError('');
         try {
-            const res = await fetch(`/api/workspaces/${selectedWorkspace?.id}/groups/${selectedGroupId}/members`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups/${selectedGroupId}/members`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

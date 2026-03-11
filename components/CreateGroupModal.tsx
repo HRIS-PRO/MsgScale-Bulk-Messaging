@@ -38,7 +38,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
         if (!isOpen || !token) return;
         const fetchContacts = async () => {
             try {
-                const res = await fetch('/api/workspaces/customers', {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -116,7 +116,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                 }
             }
 
-            const res = await fetch(`/api/workspaces/${selectedWorkspace?.id}/groups`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

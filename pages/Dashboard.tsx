@@ -22,7 +22,7 @@ const Dashboard = () => {
   const fetchStats = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/workspaces/${selectedWorkspace!.id}/dashboard-stats`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace!.id}/dashboard-stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

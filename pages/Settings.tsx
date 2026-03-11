@@ -42,7 +42,7 @@ const GeneralSettings = () => {
     if (!token || !title.trim()) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title.trim() }),
@@ -65,7 +65,7 @@ const GeneralSettings = () => {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/logo`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/logo`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
@@ -86,7 +86,7 @@ const GeneralSettings = () => {
   const handleRemoveLogo = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ logo_url: null }),
@@ -104,7 +104,7 @@ const GeneralSettings = () => {
     if (!token || deleteConfirmName !== selectedWorkspace.title) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -296,7 +296,7 @@ const TeamManagement = () => {
   const fetchMembers = async () => {
     if (!token || !selectedWorkspace) return;
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/members`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/members`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setMembers(await res.json());
@@ -307,7 +307,7 @@ const TeamManagement = () => {
     if (!token || !selectedWorkspace) return;
     setIsRefreshing(true);
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/eligible-users`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/eligible-users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setEligibleUsers(await res.json());
@@ -323,7 +323,7 @@ const TeamManagement = () => {
     if (!token || !selectedWorkspace || selectedUserIds.length === 0) return;
     setIsInviting(true);
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/members/bulk`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/members/bulk`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -363,7 +363,7 @@ const TeamManagement = () => {
     if (!token || !selectedWorkspace) return;
     if (!confirm('Are you sure you want to remove this member?')) return;
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/members/${userId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/members/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -60,7 +60,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
   const fetchWorkspaces = async () => {
     if (!token) return;
     try {
-      const response = await fetch('/api/workspaces', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -78,7 +78,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/auth/direct-login', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/direct-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

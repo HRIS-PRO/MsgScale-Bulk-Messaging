@@ -38,7 +38,7 @@ const Contacts = () => {
   const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/workspaces/customers', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`
         }
@@ -136,7 +136,7 @@ const Contacts = () => {
       if (idsToDelete.length === 0) return;
 
       try {
-        const res = await fetch('/api/workspaces/customers/bulk', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers/bulk`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`,
@@ -160,7 +160,7 @@ const Contacts = () => {
 
   const deleteSingleCustomer = async (id: string) => {
     try {
-      const res = await fetch('/api/workspaces/customers/bulk', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers/bulk`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`,

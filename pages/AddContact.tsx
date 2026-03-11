@@ -71,7 +71,7 @@ const AddContact = () => {
 
     setIsSaving(true);
     try {
-      const response = await fetch('/api/workspaces/customers/bulk', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers/bulk`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`,

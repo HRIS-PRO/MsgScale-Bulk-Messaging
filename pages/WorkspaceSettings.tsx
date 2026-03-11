@@ -44,7 +44,7 @@ const WorkspaceSettings = () => {
         formData.append('file', file);
 
         try {
-            const response = await fetch(`/api/workspaces/${selectedWorkspace.id}/logo`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/logo`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -80,7 +80,7 @@ const WorkspaceSettings = () => {
 
         setIsDeleting(true);
         try {
-            const response = await fetch(`/api/workspaces/${selectedWorkspace.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

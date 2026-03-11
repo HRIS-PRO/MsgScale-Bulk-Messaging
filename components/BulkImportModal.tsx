@@ -162,7 +162,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
             const batch = payload.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
 
             try {
-                const res = await fetch('/api/workspaces/customers/bulk', {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers/bulk`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

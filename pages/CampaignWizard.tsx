@@ -45,7 +45,7 @@ const CampaignWizard = () => {
     if (!selectedWorkspace?.id || !token) return;
     setIsLoadingGroups(true);
     try {
-      const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/groups`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/groups`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -109,7 +109,7 @@ const CampaignWizard = () => {
   const fetchCampaign = async () => {
     setIsLoadingCampaign(true);
     try {
-      const res = await fetch(`/api/campaigns/${selectedWorkspace?.id}/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace?.id}/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -165,7 +165,7 @@ const CampaignWizard = () => {
     setShowToast(true);
 
     try {
-      const response = await fetch(`/api/campaigns/${selectedWorkspace.id}/test-email`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}/test-email`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -217,7 +217,7 @@ const CampaignWizard = () => {
     };
 
     try {
-      const response = await fetch(`/api/campaigns/${selectedWorkspace.id}${id ? `/${id}` : ''}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}${id ? `/${id}` : ''}`, {
         method: id ? 'PATCH' : 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -231,7 +231,7 @@ const CampaignWizard = () => {
 
         if (isSubmit) {
           // Immediately submit for approval
-          await fetch(`/api/campaigns/${selectedWorkspace.id}/${campaign.id}/submit`, {
+          await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}/${campaign.id}/submit`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -265,7 +265,7 @@ const CampaignWizard = () => {
     if (!token) return;
     setIsLoadingTemplates(true);
     try {
-      const response = await fetch('/api/templates', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/templates`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

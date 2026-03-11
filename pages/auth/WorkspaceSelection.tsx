@@ -21,7 +21,7 @@ const WorkspaceSelection = ({ onSelect }: { onSelect: () => void }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/workspaces', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -46,7 +46,7 @@ const WorkspaceSelection = ({ onSelect }: { onSelect: () => void }) => {
 
     setIsCreating(true);
     try {
-      const response = await fetch('/api/workspaces', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

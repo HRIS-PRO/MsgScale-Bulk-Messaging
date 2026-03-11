@@ -23,7 +23,7 @@ const Groups: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await fetch(`/api/workspaces/${selectedWorkspace.id}/groups`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}/groups`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Failed to fetch groups');
