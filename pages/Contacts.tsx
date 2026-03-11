@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from '../RoleContext';
 import AddToGroupModal from '../components/AddToGroupModal';
+import EditCustomerModal from '../components/EditCustomerModal';
 
 interface Contact {
   id: string;
@@ -69,6 +70,8 @@ const Contacts = () => {
   const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
   const [visibility, setVisibility] = useState<'global' | 'workspace' | 'private'>('global');
   const [isAddToGroupModalOpen, setIsAddToGroupModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Contact | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   const filteredAndSortedContacts = useMemo(() => {
@@ -407,9 +410,13 @@ const Contacts = () => {
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-1">
-                          <button className="size-9 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-border-dark text-slate-400 hover:text-primary hover:border-primary/20 hover:bg-primary/5 transition-all shadow-sm" title="Edit">
-                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditingCustomer(contact); setIsEditModalOpen(true); }}
+                              className="size-9 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-border-dark text-slate-400 hover:text-primary hover:border-primary/20 hover:bg-primary/5 transition-all shadow-sm" title="Edit">
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => deleteSingleCustomer(contact.id)}
                             className="size-9 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-border-dark text-slate-400 hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/10 transition-all shadow-sm"
@@ -549,6 +556,25 @@ const Contacts = () => {
             setIsAddToGroupModalOpen(false);
             setSuccessMessage(`Successfully added recipients to group. ${added} were new members.`);
             setSelectedIds(new Set());
+            setTimeout(() => setSuccessMessage(''), 5000);
+          }}
+        />
+      )}
+
+      {/* EDIT CUSTOMER MODAL */}
+      {isEditModalOpen && editingCustomer && (
+        <EditCustomerModal
+          isOpen={isEditModalOpen}
+          customer={editingCustomer}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingCustomer(null);
+          }}
+          onSuccess={() => {
+            setIsEditModalOpen(false);
+            setEditingCustomer(null);
+            setSuccessMessage(`Customer successfully updated!`);
+            fetchContacts(); // Refresh list to get new changes
             setTimeout(() => setSuccessMessage(''), 5000);
           }}
         />

@@ -29,7 +29,7 @@ const CampaignWizard = () => {
   const [step, setStep] = useState<Step>(1);
 
   // Step 1: Details State
-  const [campaignName, setCampaignName] = useState('Summer Sale 2024');
+  const [campaignName, setCampaignName] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<'email' | 'sms'>('email');
   const [campaignCategory, setCampaignCategory] = useState<'promotional' | 'transactional' | 'newsletter'>('promotional');
 
@@ -545,12 +545,12 @@ const CampaignWizard = () => {
                       <span>Exclusions</span>
                       <span className="text-red-500">{excludedSegments.length}</span>
                     </div>
-                    <div className="pt-4 border-t border-slate-100 dark:border-border-dark flex justify-between items-center font-black">
+                    {/* <div className="pt-4 border-t border-slate-100 dark:border-border-dark flex justify-between items-center font-black">
                       <span className="text-xs dark:text-white uppercase tracking-widest">Estimated Reach</span>
                       <span className="text-green-500 italic">
                         {selectedSegments.length > 0 ? (92.4 - (excludedSegments.length * 2)).toFixed(1) : '0'}%
                       </span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>

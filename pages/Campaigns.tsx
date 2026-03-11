@@ -98,6 +98,25 @@ const Campaigns = () => {
     }
   };
 
+  const handleResendApproval = async (campaign: any) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace?.id}/${campaign.id}/resend-approval`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setToastMessage('Approval Notification Resent!');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
+      } else {
+        const err = await response.json();
+        alert(`Error: ${err.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to resend approval:', error);
+    }
+  };
+
   const handleDeleteCampaign = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
 
@@ -221,6 +240,15 @@ const Campaigns = () => {
                         </button>
                       ) : (
                         <div className="flex items-center gap-1">
+                          {c.status === 'PENDING' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleResendApproval(c); }}
+                              className="size-10 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all border border-slate-100 dark:border-border-dark hover:border-blue-100 shadow-sm bg-white dark:bg-surface-dark"
+                              title="Resend Approval Notification"
+                            >
+                              <span className="material-symbols-outlined text-xl">send</span>
+                            </button>
+                          )}
                           {(c.status === 'DRAFT' || c.status === 'REJECTED') && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleEditCampaign(c); }}
