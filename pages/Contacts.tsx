@@ -25,6 +25,16 @@ interface Contact {
 
 const formatDate = (isoString?: string) => {
   if (!isoString) return '';
+  
+  // Check if it's an Excel serial date (numeric string)
+  if (!isNaN(Number(isoString)) && Number(isoString) > 1000) {
+    const excelDays = Number(isoString);
+    const d = new Date((excelDays - (excelDays > 59 ? 25569 : 25568)) * 86400 * 1000);
+    if (!isNaN(d.getTime())) {
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+  }
+
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return isoString.split('T')[0];
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -34,19 +44,27 @@ const Contacts = () => {
   const navigate = useNavigate();
   const { role } = useRole();
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [totalContacts, setTotalContacts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`
         }
       });
       if (res.ok) {
-        const data = await res.json();
-        setContacts(data);
+        const queryData = await res.json();
+        // Backend now returns { data: [...], meta: { total, page, limit, totalPages } }
+        setContacts(queryData.data || []);
+        setTotalContacts(queryData.meta?.total || 0);
       }
     } catch (err) {
       console.error('Failed to fetch customers:', err);
@@ -57,11 +75,14 @@ const Contacts = () => {
 
   React.useEffect(() => {
     fetchContacts();
-  }, []);
+  }, [currentPage, searchQuery]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const canEdit = role === 'Admin' || role === 'Manager' || role === 'Editor';
   const isAdmin = role === 'Admin';
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: keyof Contact; direction: 'asc' | 'desc' } | null>(null);
   const [activeGroupFilter, setActiveGroupFilter] = useState<string>('All');
@@ -108,6 +129,11 @@ const Contacts = () => {
 
     return result;
   }, [contacts, searchQuery, sortConfig, activeGroupFilter]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(totalContacts / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalContacts);
 
   // Handlers
   const toggleSelectAll = () => {
@@ -334,6 +360,7 @@ const Contacts = () => {
                 </th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Phone & Email</th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Details</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">DOB</th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Type</th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Joined Date</th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
@@ -398,6 +425,11 @@ const Contacts = () => {
                         </div>
                       </td>
                       <td className="px-6 py-5">
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                          {contact.dob ? formatDate(contact.dob) : <span className="text-slate-400 italic font-medium">Unknown</span>}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
                         <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-green-500/10 text-green-600 dark:text-green-500 border-green-500/20`}>
                           <span className={`size-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]`}></span>
                           {contact.customerType || 'Standard'}
@@ -437,14 +469,22 @@ const Contacts = () => {
         {/* Pagination & Summary */}
         <div className="p-6 flex flex-col md:flex-row items-center justify-between border-t border-slate-100 dark:border-border-dark bg-slate-50 dark:bg-[#111722]/30 gap-4">
           <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
-            Showing <span className="text-slate-900 dark:text-white">{filteredAndSortedContacts.length}</span> of <span className="text-slate-900 dark:text-white">{contacts.length}</span> Total Results
+            Showing <span className="text-slate-900 dark:text-white">{filteredAndSortedContacts.length > 0 ? startIndex : 0}</span> to <span className="text-slate-900 dark:text-white">{endIndex}</span> of <span className="text-slate-900 dark:text-white">{totalContacts}</span> Total Results
           </div>
           <div className="flex gap-2">
-            <button className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary transition-all">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
               <span className="material-symbols-outlined text-lg">chevron_left</span>
             </button>
-            <button className="size-10 rounded-xl bg-primary text-white text-xs font-black shadow-lg shadow-primary/20">1</button>
-            <button className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary transition-all">
+            <button className="size-10 rounded-xl bg-primary text-white text-xs font-black shadow-lg shadow-primary/20">{currentPage}</button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>
           </div>

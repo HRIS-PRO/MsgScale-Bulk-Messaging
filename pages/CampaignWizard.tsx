@@ -84,10 +84,18 @@ const CampaignWizard = () => {
   `.trim());
 
   // Step 4: Schedule State
-  const [deliveryType, setDeliveryType] = useState<'immediate' | 'scheduled' | 'throttled'>('scheduled');
-  const [scheduledDate, setScheduledDate] = useState('2024-06-25');
-  const [scheduledTime, setScheduledTime] = useState('09:00');
-  const [throttleRate, setThrottleRate] = useState(1000); // messages per hour
+  const [deliveryType, setDeliveryType] = useState<'immediate' | 'scheduled' | 'throttled' | 'cycle' | 'anniversary'>('immediate');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [throttleRate, setThrottleRate] = useState(100); // msgs per hour
+  
+  // New States for Cycle and Anniversary
+  const [cycleType, setCycleType] = useState<'daily' | 'weekly'>('daily');
+  const [cycleDay, setCycleDay] = useState<number>(1); // 1 = Monday, 7 = Sunday
+  const [cycleTime, setCycleTime] = useState('');
+  
+  const [anniversaryField, setAnniversaryField] = useState('Date of Birth');
+  const [anniversaryTime, setAnniversaryTime] = useState('');
 
   // UI State
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
@@ -210,6 +218,8 @@ const CampaignWizard = () => {
       },
       scheduledAt: deliveryType === 'scheduled' ? `${scheduledDate}T${scheduledTime}:00` : null,
       throttleRate: deliveryType === 'throttled' ? throttleRate : null,
+      cycleConfig: deliveryType === 'cycle' ? { type: cycleType, dayOfWeek: cycleType === 'weekly' ? cycleDay : null, time: cycleTime } : null,
+      anniversaryConfig: deliveryType === 'anniversary' ? { field: anniversaryField, time: anniversaryTime } : null,
       recipients: [
         ...selectedSegments.map(id => ({ groupId: id, isExcluded: false })),
         ...excludedSegments.map(id => ({ groupId: id, isExcluded: true }))
@@ -805,7 +815,7 @@ const CampaignWizard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {(['immediate', 'scheduled', 'throttled'] as const).map((type) => (
+                    {(['immediate', 'scheduled', 'throttled', 'cycle', 'anniversary'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => setDeliveryType(type)}
@@ -814,13 +824,13 @@ const CampaignWizard = () => {
                       >
                         <div className={`size-10 rounded-lg flex items-center justify-center ${deliveryType === type ? 'bg-primary text-white' : 'text-slate-400'}`}>
                           <span className="material-symbols-outlined">
-                            {type === 'immediate' ? 'bolt' : type === 'scheduled' ? 'calendar_today' : 'speed'}
+                            {type === 'immediate' ? 'bolt' : type === 'scheduled' ? 'calendar_today' : type === 'throttled' ? 'speed' : type === 'cycle' ? 'autorenew' : 'cake'}
                           </span>
                         </div>
                         <div className="flex-1">
                           <p className="text-xs font-black dark:text-white uppercase tracking-tight italic">{type.replace('_', ' ')}</p>
                           <p className="text-[9px] text-slate-500 font-bold uppercase">
-                            {type === 'immediate' ? 'Send as soon as possible' : type === 'scheduled' ? 'Pick a specific date and time' : 'Send in batches over time'}
+                            {type === 'immediate' ? 'Send as soon as possible' : type === 'scheduled' ? 'Pick a specific date and time' : type === 'throttled' ? 'Send in batches over time' : type === 'cycle' ? 'Send on a recurring schedule' : 'Trigger sent on contact dates'}
                           </p>
                         </div>
                         <div className={`size-5 rounded-full border-2 flex items-center justify-center ${deliveryType === type ? 'border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
@@ -918,6 +928,80 @@ const CampaignWizard = () => {
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {deliveryType === 'cycle' && (
+                    <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Repeat Setup</label>
+                          <select 
+                            value={cycleType} 
+                            onChange={(e) => setCycleType(e.target.value as 'daily' | 'weekly')}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary appearance-none"
+                          >
+                            <option value="daily">Every Day</option>
+                            <option value="weekly">Once a Week</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Time of Day</label>
+                          <input type="time" value={cycleTime} onChange={(e) => setCycleTime(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary" />
+                        </div>
+                      </div>
+                      
+                      {cycleType === 'weekly' && (
+                        <div className="space-y-2 animate-[fadeInDown_0.2s_ease-out]">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Day of the Week</label>
+                          <div className="flex gap-2">
+                            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setCycleDay(idx + 1)}
+                                className={`flex-1 aspect-square rounded-xl text-xs font-black transition-all border ${cycleDay === idx + 1 ? 'bg-primary border-primary text-white shadow-md' : 'bg-slate-50 dark:bg-background-dark/30 border-slate-200 dark:border-border-dark text-slate-500 hover:border-slate-300'}`}
+                              >
+                                {day}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {deliveryType === 'anniversary' && (
+                    <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trigger Date Field</label>
+                          <select 
+                            value={anniversaryField} 
+                            onChange={(e) => setAnniversaryField(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary appearance-none"
+                          >
+                            <option value="Date of Birth">Date of Birth</option>
+                            <option value="External Date Created">External Date Created</option>
+                            <option value="Joining Date">Joining Date</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Time of Day</label>
+                          <input type="time" value={anniversaryTime} onChange={(e) => setAnniversaryTime(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-900/50 rounded-xl p-4 flex gap-4 items-start shadow-sm">
+                        <div className="size-8 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-sm">info</span>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-orange-900 dark:text-orange-100 uppercase tracking-tight mb-1">Date Format Recognition</h4>
+                          <p className="text-[11px] text-orange-800/80 dark:text-orange-200/80 font-medium leading-relaxed">
+                            System automatically handles Excel serial dates (e.g. <span className="font-black bg-orange-200/50 px-1 rounded">30022</span> = <span className="font-black bg-orange-200/50 px-1 rounded">21-Feb-1982</span>) alongside standard formats (YYYY-MM-DD). The year is ignored to generate an annual trigger.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
 

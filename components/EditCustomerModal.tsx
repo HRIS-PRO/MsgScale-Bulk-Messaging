@@ -7,13 +7,12 @@ interface Contact {
     title: string;
     surname: string;
     firstName: string;
+    otherName?: string;
     mobilePhone: string;
     email: string;
-    residentialState?: string;
-    occupation?: string;
+    dob?: string;
     gender?: string;
-    maritalStatus?: string;
-    homeAddress?: string;
+    residentialState?: string;
 }
 
 interface EditCustomerModalProps {
@@ -22,6 +21,26 @@ interface EditCustomerModalProps {
     customer: Contact;
     onSuccess: () => void;
 }
+
+const formatForDateInput = (isoString?: string) => {
+    if (!isoString) return '';
+    
+    // Check if it's an Excel serial date (numeric string)
+    if (!isNaN(Number(isoString)) && Number(isoString) > 1000) {
+        const excelDays = Number(isoString);
+        const d = new Date((excelDays - (excelDays > 59 ? 25569 : 25568)) * 86400 * 1000);
+        if (!isNaN(d.getTime())) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+    }
+
+    const d = new Date(isoString);
+    if (!isNaN(d.getTime())) {
+         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    
+    return isoString.split('T')[0];
+};
 
 const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, customer, onSuccess }) => {
     const [formData, setFormData] = useState<Partial<Contact>>({});
@@ -32,6 +51,11 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
         if (customer) {
             // Explicitly exclude BVN and NIN from the initial state
             const { bvn, nin, ...safeData } = customer as any;
+            
+            if (safeData.dob) {
+                safeData.dob = formatForDateInput(safeData.dob);
+            }
+            
             setFormData(safeData);
         }
     }, [customer]);
@@ -147,6 +171,25 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
                                         className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
                                     />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Other Name</label>
+                                    <input
+                                        name="otherName"
+                                        value={formData.otherName || ''}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">DOB</label>
+                                    <input
+                                        name="dob"
+                                        type="date"
+                                        value={formData.dob || ''}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -176,15 +219,6 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
                                     />
                                 </div>
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Home Address</label>
-                                    <input
-                                        name="homeAddress"
-                                        value={formData.homeAddress || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Residential State</label>
                                     <input
                                         name="residentialState"
@@ -192,47 +226,6 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
                                     />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Classification Group */}
-                        <div>
-                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-border-dark pb-2 mb-4 italic">Classification</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Customer Type</label>
-                                    <input
-                                        name="customerType"
-                                        value={formData.customerType || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                        placeholder="e.g. Standard, Premium, Lead"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Occupation</label>
-                                    <input
-                                        name="occupation"
-                                        value={formData.occupation || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Marital Status</label>
-                                    <select
-                                        name="maritalStatus"
-                                        value={formData.maritalStatus || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all appearance-none"
-                                    >
-                                        <option value="">Select Status</option>
-                                        <option value="Single">Single</option>
-                                        <option value="Married">Married</option>
-                                        <option value="Divorced">Divorced</option>
-                                        <option value="Widowed">Widowed</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>
