@@ -45,18 +45,18 @@ const Groups: React.FC = () => {
     return (
         <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-background-dark animate-[fadeIn_0.3s_ease-out]">
             {/* Header */}
-            <header className="px-8 py-8 border-b border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark sticky top-0 z-10 hidden md:block">
-                <div className="flex justify-between items-center max-w-7xl mx-auto">
+            <header className="px-4 md:px-8 py-6 md:py-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark sticky top-0 z-10">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 max-w-7xl mx-auto">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                            <span className="material-symbols-outlined text-primary text-4xl">groups</span>
+                        <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                            <span className="material-symbols-outlined text-primary text-3xl md:text-4xl text-blue-600">groups</span>
                             Audience Groups
                         </h1>
-                        <p className="text-sm font-bold text-slate-500 italic">Manage static lists and dynamic targeting rules.</p>
+                        <p className="text-[12px] md:text-sm font-bold text-slate-500 italic">Manage static lists and dynamic targeting rules.</p>
                     </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-2 bg-primary hover:bg-blue-600 hover:-translate-y-0.5 transition-all text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20"
+                        className="flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 hover:-translate-y-0.5 transition-all text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20"
                     >
                         <span className="material-symbols-outlined text-[18px]">add</span>
                         Create Group
@@ -66,7 +66,7 @@ const Groups: React.FC = () => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto w-full">
-                <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
+                <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6">
                     {/* Search Bar */}
                     <div className="relative group max-w-md">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">

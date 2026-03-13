@@ -3,7 +3,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from '../RoleContext';
 
-const Header = () => {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   const { selectedWorkspace, workspaces, selectWorkspace, role } = useRole();
@@ -29,17 +33,26 @@ const Header = () => {
   };
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark z-30 shrink-0 theme-transition">
-      <div className="flex-1 max-w-lg">
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+    <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark z-30 shrink-0 theme-transition">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <button 
+          onClick={onMenuClick}
+          className="p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden transition-all"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+
+        <div className="flex-1 max-w-lg hidden sm:block">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+            </div>
+            <input
+              className="block w-full pl-10 pr-3 py-2 rounded-lg border-0 ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-surface-dark text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow sm:text-sm"
+              placeholder="Search campaigns, contacts, or templates..."
+              type="text"
+            />
           </div>
-          <input
-            className="block w-full pl-10 pr-3 py-2 rounded-lg border-0 ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-surface-dark text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow sm:text-sm"
-            placeholder="Search campaigns, contacts, or templates..."
-            type="text"
-          />
         </div>
       </div>
 

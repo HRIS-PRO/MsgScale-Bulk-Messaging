@@ -36,11 +36,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
+    <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white italic">Welcome back, {userName}</h2>
-          <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium">Managing <b>{selectedWorkspace?.title}</b> workspace.</p>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white italic">Welcome back, {userName}</h2>
+          <p className="mt-1 text-slate-500 dark:text-slate-400 font-medium text-[12px] md:text-sm">Managing <b>{selectedWorkspace?.title}</b> workspace.</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">

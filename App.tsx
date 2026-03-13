@@ -23,6 +23,7 @@ import WorkspaceSelection from './pages/auth/WorkspaceSelection';
 const AppContent = () => {
   const location = useLocation();
   const { token, selectedWorkspace, logout } = useRole();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Routes that don't need the sidebar/header layout
   const isAuthRoute = location.pathname.startsWith('/auth');
@@ -38,9 +39,20 @@ const AppContent = () => {
 
   return (
     <div className="flex h-screen w-full bg-slate-50 dark:bg-background-dark overflow-hidden text-slate-900 dark:text-white font-display theme-transition">
-      {!isAuthRoute && <Sidebar onLogout={logout} />}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        {!isAuthRoute && <Header />}
+      {!isAuthRoute && (
+        <>
+          {/* Mobile Overlay */}
+          {isSidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+          <Sidebar onLogout={logout} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        </>
+      )}
+      <div className="flex-1 flex flex-col min-w-0 h-full relative">
+        {!isAuthRoute && <Header onMenuClick={() => setIsSidebarOpen(true)} />}
         <main className="flex-1 overflow-y-auto">
           <Routes>
             {/* Auth Routes */}

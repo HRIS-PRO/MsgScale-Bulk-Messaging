@@ -211,18 +211,18 @@ const Contacts = () => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto pb-20 animate-[fadeIn_0.3s_ease-out] theme-transition relative">
+    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto pb-20 animate-[fadeIn_0.3s_ease-out] theme-transition relative">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tight">Manage Contacts</h2>
-          <p className="text-slate-500 text-sm font-medium">View, filter, and organize your message recipients.</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white italic tracking-tight">Manage Contacts</h2>
+          <p className="text-slate-500 text-[12px] md:text-sm font-medium">View, filter, and organize your message recipients.</p>
         </div>
         <div className="flex gap-3">
           {canEdit && (
             <button
               onClick={() => navigate('/contacts/add')}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all active:scale-95"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-[10px] md:text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all active:scale-95"
             >
               <span className="material-symbols-outlined text-[18px]">person_add</span>
               New Contact

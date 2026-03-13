@@ -104,20 +104,20 @@ const Reports = () => {
   return (
     <div className="flex h-full bg-slate-50 dark:bg-background-dark overflow-hidden theme-transition font-display">
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <div className="p-8 max-w-7xl mx-auto w-full space-y-8 pb-32">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8 pb-32">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div className="space-y-1">
-              <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic">Reports & Analytics</h1>
-              <p className="text-slate-500 font-medium">Detailed insights into your audience's interaction behavior.</p>
+              <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight italic">Reports & Analytics</h1>
+              <p className="text-[12px] md:text-sm text-slate-500 font-medium">Detailed insights into your audience's interaction behavior.</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark p-1 rounded-xl shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark p-1 rounded-xl shadow-sm w-full sm:w-auto overflow-x-auto">
                 {(['overview', 'deliverability', 'engagement'] as TabType[]).map((tab) => (
                   <button 
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${
+                    className={`flex-1 sm:flex-none px-4 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-lg transition-all ${
                       activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
