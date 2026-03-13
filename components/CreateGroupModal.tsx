@@ -33,12 +33,16 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
         { field: 'customerType', operator: 'equals', value: '' }
     ]);
 
+    const [isFetching, setIsFetching] = useState(false);
+
     // Fetch contacts for static selection
     useEffect(() => {
-        if (!isOpen || !token) return;
+        if (!isOpen || !token || groupType !== 'static') return;
+        
         const fetchContacts = async () => {
+            setIsFetching(true);
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?limit=5000`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?limit=50&search=${encodeURIComponent(searchQuery)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -47,18 +51,18 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                 }
             } catch (err) {
                 console.error("Failed to load contacts for modal", err);
+            } finally {
+                setIsFetching(false);
             }
         };
-        fetchContacts();
-    }, [isOpen, token]);
+
+        const timeoutId = setTimeout(fetchContacts, 300);
+        return () => clearTimeout(timeoutId);
+    }, [isOpen, token, groupType, searchQuery]);
 
     if (!isOpen) return null;
 
-    const filteredContacts = contacts.filter(c =>
-        (c.fullName && c.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (c.mobilePhone && c.mobilePhone.includes(searchQuery))
-    );
+    const filteredContacts = contacts; // server-side filtering is now used
 
     const toggleContact = (id: string) => {
         const next = new Set(selectedContactIds);
@@ -228,7 +232,9 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select Audience ({selectedContactIds.size} Selected)</label>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                                     <div className="relative flex-1 w-full group">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 group-focus-within:text-primary">search</span>
+                                        <span className={`absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 group-focus-within:text-primary ${isFetching ? 'animate-spin' : ''}`}>
+                                            {isFetching ? 'autorenew' : 'search'}
+                                        </span>
                                         <input
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -249,29 +255,38 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                                 </div>
 
                                 <div className="bg-white dark:bg-[#0c1016] border border-slate-200 dark:border-border-dark rounded-2xl overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-border-dark">
-                                    {filteredContacts.map(contact => (
-                                        <div
-                                            key={contact.id}
-                                            onClick={() => toggleContact(contact.id)}
-                                            className={`p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${selectedContactIds.has(contact.id) ? 'bg-primary/5' : ''}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`size-4 rounded border flex items-center justify-center transition-all ${selectedContactIds.has(contact.id) ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                    {selectedContactIds.has(contact.id) && <span className="material-symbols-outlined text-white text-[12px] font-black">check</span>}
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-black text-slate-900 dark:text-white italic leading-tight">{contact.fullName || 'No Name'}</p>
-                                                    <p className="text-[10px] text-slate-500 font-bold uppercase">{contact.customerType || 'Contact'}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] text-slate-400 font-mono">{contact.email}</span>
-                                                <span className="text-[10px] text-slate-400 font-mono">{contact.mobilePhone}</span>
-                                            </div>
+                                    {isFetching && contacts.length === 0 ? (
+                                        <div className="p-12 text-center text-[10px] font-black text-slate-400 uppercase italic flex flex-col items-center gap-3">
+                                            <span className="material-symbols-outlined animate-spin text-primary">autorenew</span>
+                                            Loading Directory...
                                         </div>
-                                    ))}
-                                    {filteredContacts.length === 0 && (
-                                        <div className="p-12 text-center text-[10px] font-black text-slate-400 uppercase italic">No contacts match filter</div>
+                                    ) : (
+                                        <>
+                                            {filteredContacts.map(contact => (
+                                                <div
+                                                    key={contact.id}
+                                                    onClick={() => toggleContact(contact.id)}
+                                                    className={`p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${selectedContactIds.has(contact.id) ? 'bg-primary/5' : ''}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`size-4 rounded border flex items-center justify-center transition-all ${selectedContactIds.has(contact.id) ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                            {selectedContactIds.has(contact.id) && <span className="material-symbols-outlined text-white text-[12px] font-black">check</span>}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-black text-slate-900 dark:text-white italic leading-tight">{contact.fullName || 'No Name'}</p>
+                                                            <p className="text-[10px] text-slate-500 font-bold uppercase">{contact.customerType || 'Contact'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[10px] text-slate-400 font-mono">{contact.email}</span>
+                                                        <span className="text-[10px] text-slate-400 font-mono">{contact.mobilePhone}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {filteredContacts.length === 0 && !isFetching && (
+                                                <div className="p-12 text-center text-[10px] font-black text-slate-400 uppercase italic">No contacts match filter</div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>
