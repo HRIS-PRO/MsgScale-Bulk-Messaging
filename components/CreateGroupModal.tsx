@@ -38,12 +38,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
         if (!isOpen || !token) return;
         const fetchContacts = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?limit=5000`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    const data = await res.json();
-                    setContacts(data);
+                    const payload = await res.json();
+                    setContacts(payload.data || []);
                 }
             } catch (err) {
                 console.error("Failed to load contacts for modal", err);
