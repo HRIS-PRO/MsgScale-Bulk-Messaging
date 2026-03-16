@@ -279,7 +279,7 @@ const Campaigns = () => {
       {isReviewModalOpen && selectedCampaign && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-background-dark/80 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]" onClick={() => setIsReviewModalOpen(false)}></div>
-          <div className="relative w-full max-w-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-[2.5rem] shadow-2xl overflow-hidden animate-[zoomIn_0.2s_ease-out] flex flex-col">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-[2.5rem] shadow-2xl overflow-hidden animate-[zoomIn_0.2s_ease-out] flex flex-col max-h-[90vh]">
             <div className="p-8 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50 dark:bg-background-dark/30">
               <div>
                 <h3 className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-widest italic">Review Campaign</h3>
@@ -290,7 +290,7 @@ const Campaigns = () => {
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-8 space-y-6 overflow-y-auto">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Campaign Name</p>
