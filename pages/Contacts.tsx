@@ -47,6 +47,14 @@ const Contacts = () => {
   const [totalContacts, setTotalContacts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,7 +63,7 @@ const Contacts = () => {
   const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearchQuery)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`
         }
@@ -75,11 +83,11 @@ const Contacts = () => {
 
   React.useEffect(() => {
     fetchContacts();
-  }, [currentPage, searchQuery]);
+  }, [currentPage, debouncedSearchQuery]);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [debouncedSearchQuery]);
 
   const canEdit = role === 'Admin' || role === 'Manager' || role === 'Editor';
   const isAdmin = role === 'Admin';
@@ -97,19 +105,19 @@ const Contacts = () => {
 
   const filteredAndSortedContacts = useMemo(() => {
     let result = contacts.filter(c => {
-      const searchLower = searchQuery.toLowerCase();
+      const searchLower = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
 
-      const searchString = `
-        ${c.firstName || ''} 
-        ${c.surname || ''} 
-        ${c.email || ''} 
-        ${c.mobilePhone || ''} 
-        ${c.bvn || ''} 
-        ${c.nin || ''} 
-        ${c.tin || ''} 
-        ${c.customerType || ''} 
-        ${c.occupation || ''}
-      `.toLowerCase();
+      const searchString = [
+        c.firstName,
+        c.surname,
+        c.email,
+        c.mobilePhone,
+        c.bvn,
+        c.nin,
+        c.tin,
+        c.customerType,
+        c.occupation
+      ].filter(Boolean).map(s => s.trim()).join(' ').toLowerCase().replace(/\s+/g, ' ');
 
       const matchesSearch = searchString.includes(searchLower);
       const matchesGroup = activeGroupFilter === 'All' || c.customerType === activeGroupFilter;

@@ -101,7 +101,7 @@ const GeneralSettings = () => {
   };
 
   const handleDeleteWorkspace = async () => {
-    if (!token || deleteConfirmName !== selectedWorkspace.title) return;
+    if (!token || deleteConfirmName.trim().toLowerCase() !== selectedWorkspace.title.trim().toLowerCase()) return;
     setIsDeleting(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace.id}`, {
@@ -268,7 +268,7 @@ const GeneralSettings = () => {
               </button>
               <button
                 onClick={handleDeleteWorkspace}
-                disabled={isDeleting || deleteConfirmName !== selectedWorkspace.title}
+                disabled={isDeleting || deleteConfirmName.trim().toLowerCase() !== selectedWorkspace.title.trim().toLowerCase()}
                 className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black shadow-lg shadow-red-500/20 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isDeleting ? <span className="material-symbols-outlined animate-spin text-[16px]">refresh</span> : <span className="material-symbols-outlined text-[16px]">delete_forever</span>}

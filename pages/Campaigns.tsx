@@ -37,12 +37,14 @@ const Campaigns = () => {
     }
   };
 
-  const canCreate = role === 'Admin' || role === 'Manager' || role === 'Editor';
+  const canCreate = role === 'Admin' || role === 'Manager' || role === 'Editor' || role === 'User';
   const canApprove = (campaign: any) => {
-    // Only Admins or Managers can approve, AND you cannot approve your own campaign
-    if (role !== 'Admin' && role !== 'Manager') return false;
-    if (campaign.creatorId === user?.id) return false;
-    return true;
+    if (campaign.creatorId === user?.id && role !== 'Admin') return false;
+    const stage = campaign.content?.metadata?.approvalStage || 'MANAGER';
+    if (stage === 'EDITOR') {
+      return role === 'Admin' || role === 'Editor';
+    }
+    return role === 'Admin' || role === 'Manager';
   };
 
   const handleReview = (campaign: any) => {
@@ -231,12 +233,12 @@ const Campaigns = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      {c.status === 'PENDING' && canApprove(c) ? (
+                      {c.status === 'PENDING' ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleReview(c); }}
-                          className="px-4 py-1.5 bg-primary text-white hover:bg-primary-hover rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-primary/20"
+                          className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${canApprove(c) ? 'bg-primary text-white hover:bg-primary-hover shadow-md shadow-primary/20' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                         >
-                          Review
+                          {canApprove(c) ? 'Review' : 'View Progress'}
                         </button>
                       ) : (
                         <div className="flex items-center gap-1">
@@ -279,66 +281,131 @@ const Campaigns = () => {
       {isReviewModalOpen && selectedCampaign && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-background-dark/80 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]" onClick={() => setIsReviewModalOpen(false)}></div>
-          <div className="relative w-full max-w-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-[2.5rem] shadow-2xl overflow-hidden animate-[zoomIn_0.2s_ease-out] flex flex-col max-h-[90vh]">
-            <div className="p-8 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50 dark:bg-background-dark/30">
-              <div>
-                <h3 className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-widest italic">Review Campaign</h3>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-70 mt-1">Approval workflow required for enterprise compliance</p>
+          <div className="relative w-full max-w-5xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-[2rem] shadow-2xl overflow-hidden animate-[zoomIn_0.2s_ease-out] flex flex-col md:flex-row h-[85vh]">
+            
+            {/* Left Column: Context & Action */}
+            <div className="w-full md:w-2/5 md:border-r border-slate-100 dark:border-border-dark flex flex-col bg-slate-50 dark:bg-background-dark/30">
+              <div className="p-6 md:p-8 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-white dark:bg-surface-dark">
+                <div>
+                  <h3 className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-widest italic leading-tight">Review Campaign</h3>
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-70 mt-1">Enterprise Compliance Workflow</p>
+                </div>
+                <button onClick={() => setIsReviewModalOpen(false)} className="size-8 rounded-full bg-slate-100 dark:bg-background-dark flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm">
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
               </div>
-              <button onClick={() => setIsReviewModalOpen(false)} className="size-10 rounded-full bg-white dark:bg-background-dark border border-slate-200 dark:border-border-dark flex items-center justify-center text-slate-400 hover:text-red-500 transition-all shadow-sm">
-                <span className="material-symbols-outlined">close</span>
-              </button>
+
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
+                {/* Visual Stepper */}
+                <div className="flex items-center justify-between relative">
+                  <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-slate-200 dark:bg-slate-700 -translate-y-1/2 -z-10"></div>
+                  
+                  {['DRAFT', 'SUBMITTED', 'REVIEWING', 'APPROVED'].map((step, idx) => {
+                    let isCompleted = false;
+                    let isActive = false;
+                    let isError = false;
+                    const st = selectedCampaign.status;
+                    
+                    if (step === 'DRAFT') isCompleted = true;
+                    if (step === 'SUBMITTED') isCompleted = st !== 'DRAFT';
+                    if (step === 'REVIEWING') {
+                      if (st === 'PENDING') isActive = true;
+                      if (st === 'APPROVED' || st === 'SCHEDULED' || st === 'COMPLETED') isCompleted = true;
+                    }
+                    if (step === 'APPROVED') {
+                      if (st === 'APPROVED' || st === 'SCHEDULED' || st === 'COMPLETED') isCompleted = true;
+                      if (st === 'REJECTED') { isCompleted = true; isError = true; }
+                    }
+
+                    return (
+                      <div key={step} className="flex flex-col items-center gap-2 bg-slate-50 dark:bg-background-dark/30 px-2 ring-4 ring-slate-50 dark:ring-[#1a2130]">
+                        <div className={`size-8 rounded-full flex items-center justify-center font-bold text-sm ${isActive ? 'bg-blue-500 text-white ring-4 ring-blue-500/20' : isError ? 'bg-red-500 text-white' : isCompleted ? 'bg-green-500 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                          {isActive ? <span className="material-symbols-outlined text-[16px]">visibility</span> : isError ? <span className="material-symbols-outlined text-[16px]">close</span> : isCompleted ? <span className="material-symbols-outlined text-[16px]">check</span> : (idx + 1)}
+                        </div>
+                        <span className={`text-[8px] font-black tracking-widest uppercase ${isActive ? 'text-blue-500' : isError ? 'text-red-500' : isCompleted ? 'text-green-500' : 'text-slate-400'}`}>{isError && step === 'APPROVED' ? 'REJECTED' : step}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Metadata */}
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                  <div className="space-y-1 col-span-2">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Campaign Name</p>
+                    <p className="text-sm font-bold dark:text-white italic">{selectedCampaign.name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Channel</p>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest dark:text-slate-300">
+                      <span className="material-symbols-outlined text-[12px]">{selectedCampaign.channel === 'WHATSAPP' ? 'chat' : selectedCampaign.channel === 'SMS' ? 'sms' : 'mail'}</span>
+                      {selectedCampaign.channel}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Audience Size</p>
+                    <p className="text-sm font-bold dark:text-white font-mono">{selectedCampaign.targetCount?.toLocaleString() || '0'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Created By</p>
+                    <p className="text-sm font-bold dark:text-white">{selectedCampaign.creator?.email || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Current Stage</p>
+                    <p className="text-sm font-bold text-amber-500">{selectedCampaign.content?.metadata?.approvalStage || 'MANAGER'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Reviewer Comments (Optional)</label>
+                  <textarea className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-bold italic outline-none focus:ring-1 focus:ring-primary shadow-inner h-28 resize-none" placeholder="Add explicit feedback for the creator..."></textarea>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark flex gap-3">
+                {!canApprove(selectedCampaign) ? (
+                  <div className="flex-1 text-center text-slate-400 font-black text-[10px] uppercase tracking-widest italic bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 h-[46px] flex items-center justify-center">
+                    {selectedCampaign.status === 'PENDING' ? `Awaiting ${selectedCampaign.content?.metadata?.approvalStage?.toLowerCase() || 'manager'} review` : 'Review Completed'}
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleReject}
+                      disabled={isProcessing}
+                      className="flex-1 py-3.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={handleApprove}
+                      disabled={isProcessing}
+                      className="flex-1 py-3.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/30 hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessing ? 'Processing...' : 'Approve'}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="p-8 space-y-6 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Campaign Name</p>
-                  <p className="text-sm font-bold dark:text-white italic">{selectedCampaign.name}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Channel</p>
-                  <p className="text-sm font-bold dark:text-white uppercase">{selectedCampaign.type}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Audience Size</p>
-                  <p className="text-sm font-bold dark:text-white">{selectedCampaign.targetCount || 'Calculating...'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Created By</p>
-                  <p className="text-sm font-bold dark:text-white">{selectedCampaign.creator?.email || 'N/A'}</p>
-                </div>
+            {/* Right Column: Content Preview */}
+            <div className="w-full md:w-3/5 bg-slate-200 dark:bg-[#0f141e] flex flex-col relative h-full">
+              <div className="p-4 bg-white dark:bg-surface-dark border-b border-slate-200 dark:border-border-dark flex items-center gap-2 shrink-0">
+                <span className="material-symbols-outlined text-sm text-slate-400">preview</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Live Content Preview</span>
               </div>
-
-              <div className="bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-border-dark rounded-2xl p-6">
-                <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm">visibility</span> Content Preview
-                </h4>
-                <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: selectedCampaign.content?.body || '' }} />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Reviewer Comments (Optional)</label>
-                <textarea className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-5 py-3.5 text-sm text-slate-900 dark:text-white font-bold italic outline-none focus:ring-1 focus:ring-primary shadow-inner h-24 resize-none" placeholder="Add feedback for the campaign creator..."></textarea>
+              <div className="flex-1 overflow-y-auto w-full relative custom-scrollbar">
+                {selectedCampaign.channel === 'EMAIL' ? (
+                   <div className="w-full min-h-full bg-white text-black p-8 shadow-inner prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedCampaign.content?.body || '' }} />
+                ) : (
+                  <div className="p-8 flex items-center justify-center h-full">
+                    <div className="bg-[#DCF8C6] dark:bg-[#056162] text-slate-800 dark:text-white p-4 rounded-2xl rounded-tl-none shadow-md max-w-sm w-full font-sans text-sm whitespace-pre-wrap">
+                      {selectedCampaign.content?.body || ''}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 dark:border-border-dark bg-slate-50 dark:bg-background-dark/30 flex justify-end gap-4">
-              <button
-                onClick={handleReject}
-                disabled={isProcessing}
-                className="px-8 py-3 rounded-2xl border border-red-200 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 transition-all disabled:opacity-50"
-              >
-                {isProcessing ? '...' : 'Reject'}
-              </button>
-              <button
-                onClick={handleApprove}
-                disabled={isProcessing}
-                className="px-10 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/40 hover:bg-blue-600 hover:translate-y-[-2px] transition-all disabled:opacity-50"
-              >
-                {isProcessing ? 'Processing...' : 'Approve & Schedule'}
-              </button>
-            </div>
           </div>
         </div>
       )}

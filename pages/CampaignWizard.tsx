@@ -20,11 +20,6 @@ const CampaignWizard = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  useEffect(() => {
-    if (role === 'User') {
-      navigate('/campaigns');
-    }
-  }, [role, navigate]);
 
   const [step, setStep] = useState<Step>(1);
 

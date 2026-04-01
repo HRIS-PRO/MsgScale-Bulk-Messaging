@@ -73,7 +73,7 @@ const WorkspaceSettings = () => {
 
     const handleDeleteWorkspace = async () => {
         if (!token) return;
-        if (deleteConfirmName !== selectedWorkspace.title) {
+        if (deleteConfirmName.trim().toLowerCase() !== selectedWorkspace.title.trim().toLowerCase()) {
             alert('Workspace name does not match');
             return;
         }
@@ -242,7 +242,7 @@ const WorkspaceSettings = () => {
                             </button>
                             <button
                                 onClick={handleDeleteWorkspace}
-                                disabled={isDeleting || deleteConfirmName !== selectedWorkspace.title}
+                                disabled={isDeleting || deleteConfirmName.trim().toLowerCase() !== selectedWorkspace.title.trim().toLowerCase()}
                                 className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black shadow-lg shadow-red-500/20 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isDeleting ? (
