@@ -16,7 +16,8 @@ const commonVariables = [
 ];
 
 const CampaignWizard = () => {
-  const { role } = useRole();
+  const { role, token, selectedWorkspace } = useRole();
+  const isManager = role === 'Admin' || role === 'Manager';
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -34,7 +35,6 @@ const CampaignWizard = () => {
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [excludedSegments, setExcludedSegments] = useState<string[]>([]);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
-  const { token, selectedWorkspace } = useRole();
 
   const fetchGroups = async () => {
     if (!selectedWorkspace?.id || !token) return;
@@ -83,12 +83,12 @@ const CampaignWizard = () => {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [throttleRate, setThrottleRate] = useState(100); // msgs per hour
-  
+
   // New States for Cycle and Anniversary
   const [cycleType, setCycleType] = useState<'daily' | 'weekly'>('daily');
   const [cycleDay, setCycleDay] = useState<number>(1); // 1 = Monday, 7 = Sunday
   const [cycleTime, setCycleTime] = useState('');
-  
+
   const [anniversaryField, setAnniversaryField] = useState('Date of Birth');
   const [anniversaryTime, setAnniversaryTime] = useState('');
 
@@ -240,7 +240,7 @@ const CampaignWizard = () => {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          setToastMessage('Campaign Submitted for Approval!');
+          setToastMessage(isManager ? 'Campaign Scheduled & Launched Successfully!' : 'Campaign Submitted for Approval!');
         } else {
           setToastMessage('Campaign Saved as Draft!');
         }
@@ -590,8 +590,8 @@ const CampaignWizard = () => {
                   {/* Subject & Preheader for Email */}
                   <div className="space-y-6">
                     {selectedChannel === 'email' && (
-                      <>
-                        <div className="space-y-2 animate-[slideDown_0.3s_ease-out]">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[slideDown_0.3s_ease-out]">
+                        <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Subject Line</label>
                             <button className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
@@ -602,23 +602,23 @@ const CampaignWizard = () => {
                             <input
                               value={subject}
                               onChange={(e) => setSubject(e.target.value)}
-                              className="w-full px-4 py-3 pr-24 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold italic outline-none focus:ring-1 focus:ring-primary"
+                              className="w-full px-4 py-3 pr-24 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold italic outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                             <button className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-primary">
                               Personalize
                             </button>
                           </div>
                         </div>
-                        <div className="space-y-2 animate-[slideDown_0.3s_ease-out]">
+                        <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Preheader Text</label>
                           <input
                             value={preheader}
                             onChange={(e) => setPreheader(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="The short summary text that follows the subject line..."
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                            placeholder="Brief summary following the subject..."
                           />
                         </div>
-                      </>
+                      </div>
                     )}
 
                     <div className="pt-2 relative">
@@ -634,33 +634,61 @@ const CampaignWizard = () => {
                       </button>
 
                       {showTemplatePicker && (
-                        <div className="absolute top-[calc(100%+10px)] left-0 right-0 z-[100] bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-3xl shadow-2xl p-6 animate-[slideInUp_0.2s_ease-out]">
-                          <div className="flex justify-between items-center mb-4 px-2">
-                            <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Your {selectedChannel} Templates</h4>
-                            <button onClick={() => setShowTemplatePicker(false)} className="text-[10px] font-black uppercase text-primary hover:underline">Close</button>
+                        <div className="absolute top-[calc(100%+10px)] left-0 right-0 z-[100] bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-[2.5rem] shadow-2xl p-8 animate-[slideInUp_0.2s_ease-out]">
+                          <div className="flex justify-between items-center mb-6 px-2">
+                            <div>
+                              <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Your {selectedChannel} Templates</h4>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Select a starting point for your message</p>
+                            </div>
+                            <button
+                              onClick={() => setShowTemplatePicker(false)}
+                              className="size-8 rounded-full bg-slate-100 dark:bg-background-dark flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 pb-2 min-h-[100px] relative">
+
+                          <div className="flex gap-6 overflow-x-auto pb-4 pr-2 min-h-[220px] relative no-scrollbar snap-x snap-mandatory">
                             {isLoadingTemplates ? (
                               <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2">
                                 <span className="material-symbols-outlined animate-spin text-2xl text-primary">autorenew</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading templates...</span>
                               </div>
                             ) : availableTemplates.length === 0 ? (
-                              <p className="text-xs text-slate-400 p-8 text-center col-span-full">No {selectedChannel} templates found.</p>
+                              <div className="w-full h-40 flex flex-col items-center justify-center text-slate-400 gap-2">
+                                <span className="material-symbols-outlined text-4xl opacity-20">inventory_2</span>
+                                <p className="text-xs font-bold italic">No {selectedChannel} templates found.</p>
+                              </div>
                             ) : (
                               availableTemplates.map(t => (
                                 <button
                                   key={t.id}
                                   onClick={() => selectTemplate(t)}
-                                  className="group flex flex-col items-start p-3 rounded-2xl border border-slate-100 dark:border-border-dark hover:border-primary hover:bg-primary/5 transition-all text-left"
+                                  className="group flex-shrink-0 w-64 snap-start flex flex-col items-start p-4 rounded-[2rem] border-2 border-slate-100 dark:border-border-dark hover:border-primary hover:bg-primary/5 transition-all text-left shadow-sm hover:shadow-xl hover:shadow-primary/5"
                                 >
-                                  <div className="w-full h-24 bg-slate-50 dark:bg-background-dark/50 rounded-xl mb-3 overflow-hidden p-2">
-                                    <div className="scale-[0.3] origin-top opacity-40 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: t.content }} />
+                                  <div className="w-full aspect-[4/3] bg-slate-50 dark:bg-background-dark/50 rounded-2xl mb-4 overflow-hidden p-3 relative border border-slate-100/50 dark:border-border-dark/50">
+                                    <div
+                                      className="w-[333%] h-[333%] scale-[0.3] origin-top-left opacity-60 group-hover:opacity-100 transition-all duration-500 scale-down-content"
+                                      dangerouslySetInnerHTML={{ __html: t.content }}
+                                    />
+                                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors z-10" />
+                                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-50/80 dark:from-background-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                   </div>
-                                  <p className="text-[11px] font-black dark:text-white truncate w-full italic mb-1">{t.title}</p>
-                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.category || 'General'}</p>
+                                  <div className="px-1 w-full">
+                                    <p className="text-xs font-black dark:text-white truncate w-full italic mb-1 group-hover:text-primary transition-colors">{t.title}</p>
+                                    <div className="flex items-center gap-2">
+                                      <span className="size-1.5 rounded-full bg-emerald-500"></span>
+                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.category || 'General'}</p>
+                                    </div>
+                                  </div>
                                 </button>
                               )))}
+                          </div>
+
+                          <div className="mt-4 flex justify-center gap-1">
+                            {availableTemplates.length > 0 && Array.from({ length: Math.min(5, availableTemplates.length) }).map((_, i) => (
+                              <div key={i} className={`h-1 rounded-full transition-all ${i === 0 ? 'w-4 bg-primary' : 'w-1 bg-slate-200 dark:bg-slate-700'}`}></div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -810,29 +838,41 @@ const CampaignWizard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {(['immediate', 'scheduled', 'throttled', 'cycle', 'anniversary'] as const).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setDeliveryType(type)}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${deliveryType === type ? 'border-primary bg-primary/5' : 'border-slate-100 dark:border-border-dark bg-slate-50 dark:bg-background-dark/30'
-                          }`}
-                      >
-                        <div className={`size-10 rounded-lg flex items-center justify-center ${deliveryType === type ? 'bg-primary text-white' : 'text-slate-400'}`}>
-                          <span className="material-symbols-outlined">
-                            {type === 'immediate' ? 'bolt' : type === 'scheduled' ? 'calendar_today' : type === 'throttled' ? 'speed' : type === 'cycle' ? 'autorenew' : 'cake'}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-black dark:text-white uppercase tracking-tight italic">{type.replace('_', ' ')}</p>
-                          <p className="text-[9px] text-slate-500 font-bold uppercase">
-                            {type === 'immediate' ? 'Send as soon as possible' : type === 'scheduled' ? 'Pick a specific date and time' : type === 'throttled' ? 'Send in batches over time' : type === 'cycle' ? 'Send on a recurring schedule' : 'Trigger sent on contact dates'}
-                          </p>
-                        </div>
-                        <div className={`size-5 rounded-full border-2 flex items-center justify-center ${deliveryType === type ? 'border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
-                          {deliveryType === type && <div className="size-2.5 rounded-full bg-primary"></div>}
-                        </div>
-                      </button>
-                    ))}
+                    {(['immediate', 'scheduled', 'throttled', 'cycle', 'anniversary'] as const).map((type) => {
+                      const isRestricted = (type === 'cycle' || type === 'anniversary') && !isManager;
+                      return (
+                        <button
+                          key={type}
+                          disabled={isRestricted}
+                          onClick={() => setDeliveryType(type)}
+                          title={isRestricted ? "Permission Required: Manager role needed for recurring campaigns" : ""}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${deliveryType === type ? 'border-primary bg-primary/5' : 'border-slate-100 dark:border-border-dark bg-slate-50 dark:bg-background-dark/30'
+                            } ${isRestricted ? 'opacity-40 grayscale cursor-not-allowed border-dashed' : 'hover:border-primary/50'}`}
+                        >
+                          <div className={`size-10 rounded-lg flex items-center justify-center ${deliveryType === type ? 'bg-primary text-white' : 'text-slate-400'}`}>
+                            <span className="material-symbols-outlined">
+                              {type === 'immediate' ? 'bolt' : type === 'scheduled' ? 'calendar_today' : type === 'throttled' ? 'speed' : type === 'cycle' ? 'autorenew' : 'cake'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-black dark:text-white uppercase tracking-tight italic">{type.replace('_', ' ')}</p>
+                              {isRestricted && (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 text-[8px] font-black uppercase tracking-widest">
+                                  <span className="material-symbols-outlined text-[10px]">lock</span> Restricted
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[9px] text-slate-500 font-bold uppercase">
+                              {type === 'immediate' ? 'Send as soon as possible' : type === 'scheduled' ? 'Pick a specific date and time' : type === 'throttled' ? 'Send in batches over time' : type === 'cycle' ? 'Send on a recurring schedule' : 'Trigger sent on contact dates'}
+                            </p>
+                          </div>
+                          <div className={`size-5 rounded-full border-2 flex items-center justify-center ${deliveryType === type ? 'border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                            {deliveryType === type && <div className="size-2.5 rounded-full bg-primary"></div>}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {deliveryType === 'scheduled' && (
@@ -931,8 +971,8 @@ const CampaignWizard = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Repeat Setup</label>
-                          <select 
-                            value={cycleType} 
+                          <select
+                            value={cycleType}
                             onChange={(e) => setCycleType(e.target.value as 'daily' | 'weekly')}
                             className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary appearance-none"
                           >
@@ -945,7 +985,7 @@ const CampaignWizard = () => {
                           <input type="time" value={cycleTime} onChange={(e) => setCycleTime(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                       </div>
-                      
+
                       {cycleType === 'weekly' && (
                         <div className="space-y-2 animate-[fadeInDown_0.2s_ease-out]">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Day of the Week</label>
@@ -970,8 +1010,8 @@ const CampaignWizard = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trigger Date Field</label>
-                          <select 
-                            value={anniversaryField} 
+                          <select
+                            value={anniversaryField}
                             onChange={(e) => setAnniversaryField(e.target.value)}
                             className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary appearance-none"
                           >
@@ -985,7 +1025,7 @@ const CampaignWizard = () => {
                           <input type="time" value={anniversaryTime} onChange={(e) => setAnniversaryTime(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark text-xs font-bold outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                       </div>
-                      
+
                       <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-900/50 rounded-xl p-4 flex gap-4 items-start shadow-sm">
                         <div className="size-8 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
                           <span className="material-symbols-outlined text-sm">info</span>
@@ -1047,7 +1087,7 @@ const CampaignWizard = () => {
                 </>
               ) : (
                 <>
-                  {step === 4 ? 'Submit for Approval' : 'Next'}
+                  {step === 4 ? (isManager ? 'Schedule & Launch' : 'Submit for Approval') : 'Next'}
                   <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                 </>
               )}

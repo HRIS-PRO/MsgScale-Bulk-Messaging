@@ -14,9 +14,10 @@ interface CreateGroupModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    groupToEdit?: any;
 }
 
-const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onSuccess, groupToEdit }) => {
     const { token, selectedWorkspace } = useRole();
     const [groupName, setGroupName] = useState('');
     const [groupType, setGroupType] = useState<'static' | 'dynamic'>('static');
@@ -34,6 +35,46 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
     ]);
 
     const [isFetching, setIsFetching] = useState(false);
+
+    // Initial load/reset
+    useEffect(() => {
+        if (isOpen) {
+            if (groupToEdit) {
+                // If we have minimal info, show it while fetching details
+                setGroupName(groupToEdit.name);
+                setGroupType(groupToEdit.type);
+                
+                const fetchGroupDetails = async () => {
+                    setIsSaving(true);
+                    try {
+                        const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups/${groupToEdit.id}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            setGroupName(data.name);
+                            setGroupType(data.type);
+                            if (data.type === 'static') {
+                                setSelectedContactIds(new Set(data.customerIds || []));
+                            } else {
+                                setRules(data.rules || [{ field: 'customerType', operator: 'equals', value: '', logicGate: 'AND' }]);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch group details", err);
+                    } finally {
+                        setIsSaving(false);
+                    }
+                };
+                fetchGroupDetails();
+            } else {
+                setGroupName('');
+                setGroupType('static');
+                setSelectedContactIds(new Set());
+                setRules([{ field: 'customerType', operator: 'equals', value: '', logicGate: 'AND' }]);
+            }
+        }
+    }, [isOpen, groupToEdit, selectedWorkspace, token]);
 
     // Fetch contacts for static selection
     useEffect(() => {
@@ -120,8 +161,13 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                 }
             }
 
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups`, {
-                method: 'POST',
+            const method = groupToEdit ? 'PATCH' : 'POST';
+            const url = groupToEdit 
+                ? `${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups/${groupToEdit.id}`
+                : `${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups`;
+
+            const res = await fetch(url, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -148,8 +194,8 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                 {/* Header Section */}
                 <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-background-dark/50">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Create Group</h2>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Segment your audience</p>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{groupToEdit ? 'Edit Group' : 'Create Group'}</h2>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">{groupToEdit ? 'Update your segment' : 'Segment your audience'}</p>
                     </div>
                     <button
                         onClick={onClose}

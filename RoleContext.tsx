@@ -1,24 +1,7 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 
-export type Role = 'Admin' | 'Manager' | 'Editor' | 'User';
-
-interface User {
-  id: string;
-  email: string;
-  employee?: {
-    firstName: string;
-    surname: string;
-  }
-}
-
-interface Workspace {
-  id: string;
-  title: string;
-  status: 'ACTIVE' | 'MAINTENANCE' | 'SUSPENDED';
-  logo_url?: string | null;
-  ownerId?: string;
-}
+import { Role, User, Workspace } from './types';
 
 interface RoleContextType {
   role: Role | null;
@@ -74,7 +57,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -122,9 +105,9 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     setRole(null);
@@ -133,12 +116,65 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('msgscale_token');
     localStorage.removeItem('msgscale_user');
     localStorage.removeItem('msgscale_role');
-  };
+    localStorage.removeItem('msgscale_workspace');
 
-  const selectWorkspace = (ws: Workspace) => {
+    // Force immediate redirect for HashRouter
+    window.location.hash = '#/auth/login';
+  }, []);
+
+  const selectWorkspace = useCallback((ws: Workspace) => {
     setSelectedWorkspace(ws);
     localStorage.setItem('msgscale_workspace', JSON.stringify(ws));
-  };
+  }, []);
+
+  // Idle Logout Logic (30 minutes)
+  const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const tokenRef = useRef(token);
+  useEffect(() => {
+    tokenRef.current = token;
+  }, [token]);
+
+  const resetIdleTimer = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    if (tokenRef.current) {
+      timeoutRef.current = setTimeout(() => {
+        console.warn('Session expired: User idle for 30 minutes. Logging out...');
+        logout();
+      }, IDLE_TIMEOUT);
+    }
+  }, [logout, IDLE_TIMEOUT]);
+
+  useEffect(() => {
+    if (token) {
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'visibilitychange'];
+      
+      const handleActivity = () => {
+        resetIdleTimer();
+      };
+
+      // Set initial timer
+      resetIdleTimer();
+
+      // Add event listeners
+      events.forEach(event => {
+        window.addEventListener(event, handleActivity);
+      });
+
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        events.forEach(event => {
+          window.removeEventListener(event, handleActivity);
+        });
+      };
+    }
+  }, [token, resetIdleTimer]);
 
   return (
     <RoleContext.Provider value={{

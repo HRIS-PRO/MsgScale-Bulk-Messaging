@@ -4,12 +4,25 @@ export type Status = 'Active' | 'Pending' | 'Scheduled' | 'Sent' | 'Draft' | 'Re
 
 export interface User {
   id: string;
-  name: string;
   email: string;
-  role: Role;
-  status: Status;
+  employee?: {
+    firstName: string;
+    surname: string;
+  };
+  roles?: { app: string; role: string }[];
+  name?: string;
+  role?: Role;
+  status?: Status;
   avatar?: string;
   lastActive?: string;
+}
+
+export interface Workspace {
+  id: string;
+  title: string;
+  status: 'ACTIVE' | 'MAINTENANCE' | 'SUSPENDED';
+  logo_url?: string | null;
+  ownerId?: string;
 }
 
 export interface Campaign {

@@ -9,10 +9,34 @@ interface CustomAttribute {
   value: string;
 }
 
+const AVAILABLE_FIELDS = [
+  { label: 'Date of Birth', type: 'date' },
+  { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
+  { label: 'Nationality', type: 'text' },
+  { label: 'State of Origin', type: 'text' },
+  { label: 'Residential State', type: 'text' },
+  { label: 'Residential Town', type: 'text' },
+  { label: 'Address', type: 'text' },
+  { label: 'BVN', type: 'number' },
+  { label: 'NIN', type: 'number' },
+  { label: 'TIN', type: 'number' },
+  { label: 'Occupation', type: 'text' },
+  { label: 'Education Level', type: 'text' },
+  { label: 'Sector', type: 'text' },
+  { label: 'Office', type: 'text' },
+  { label: 'Office Phone', type: 'tel' },
+  { label: 'Office Address', type: 'text' },
+  { label: 'Is PEP', type: 'select', options: ['Yes', 'No'] },
+  { label: 'PEP Details', type: 'text' },
+  { label: 'ID Card Type', type: 'text' },
+  { label: 'ID Card No', type: 'text' },
+  { label: 'ID Issue Date', type: 'date' },
+  { label: 'ID Expiry Date', type: 'date' },
+];
+
 const AddContact = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'manual' | 'bulk'>('manual');
-  const [isAddingAttribute, setIsAddingAttribute] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Manual Entry Form State
@@ -50,11 +74,19 @@ const AddContact = () => {
       return;
     }
 
-    // Process custom attributes into a single JSON object
-    const customFields: Record<string, string> = {};
+    // Process custom attributes
+    const additionalData: Record<string, string> = {};
+    const extraCustomFields: Record<string, string> = {};
+
     customAttributes.forEach(attr => {
       if (attr.name.trim() && attr.value.trim()) {
-        customFields[attr.name.trim()] = attr.value.trim();
+        // If it's one of our predefined smart fields, map it at the top level
+        if (AVAILABLE_FIELDS.some(f => f.label === attr.name)) {
+          additionalData[attr.name] = attr.value.trim();
+        } else {
+          // Otherwise it's a true custom field
+          extraCustomFields[attr.name.trim()] = attr.value.trim();
+        }
       }
     });
 
@@ -66,7 +98,8 @@ const AddContact = () => {
       "Surname": lastName,
       "Email": email,
       "Mobile Phone": `${countryCode}${formattedMobile}`,
-      "customFields": customFields
+      ...additionalData,
+      "customFields": extraCustomFields
     }];
 
     setIsSaving(true);
@@ -186,7 +219,7 @@ const AddContact = () => {
                         <input
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
-                          className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
                           placeholder="e.g. Jane"
                           required
                         />
@@ -196,7 +229,7 @@ const AddContact = () => {
                         <input
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
-                          className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
                           placeholder="e.g. Doe"
                           required
                         />
@@ -208,67 +241,117 @@ const AddContact = () => {
                       <input
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all"
+                        className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
                         placeholder="jane.doe@company.com"
                         type="email"
                         required
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Phone Number</label>
-                      <div className="flex gap-3">
-                        <div className="relative w-32 shrink-0">
-                          <select
-                            value={countryCode}
-                            onChange={(e) => setCountryCode(e.target.value)}
-                            className="w-full appearance-none bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl pl-4 pr-10 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-medium"
-                          >
-                            <option value="+234">🇳🇬 +234</option>
-                            <option value="+1">🇺🇸 +1</option>
-                            <option value="+44">🇬🇧 +44</option>
-                          </select>
-                          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Phone Number</label>
+                        <div className="flex gap-3">
+                          <div className="relative w-32 shrink-0">
+                            <select
+                              value={countryCode}
+                              onChange={(e) => setCountryCode(e.target.value)}
+                              className="w-full appearance-none bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl pl-4 pr-10 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-medium"
+                            >
+                              <option value="+234">🇳🇬 +234</option>
+                              <option value="+1">🇺🇸 +1</option>
+                              <option value="+44">🇬🇧 +44</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                          </div>
+                          <input
+                            value={mobilePhone}
+                            onChange={(e) => setMobilePhone(e.target.value)}
+                            className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                            placeholder="800 000 0000"
+                            required
+                          />
                         </div>
-                        <input
-                          value={mobilePhone}
-                          onChange={(e) => setMobilePhone(e.target.value)}
-                          className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all"
-                          placeholder="800 000 0000"
-                          required
-                        />
                       </div>
                       <p className="text-[10px] font-bold text-slate-500 dark:text-text-secondary uppercase tracking-widest opacity-60">Please ensure format follows E.164 standards for SMS delivery.</p>
                     </div>
 
-                    {/* Option A: Inline Key-Value Custom Attributes */}
+                    {/* Smart Additional Attributes */}
                     {customAttributes.length > 0 && (
                       <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-border-dark">
-                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Custom Attributes</label>
-                        {customAttributes.map(attr => (
-                          <div key={attr.id} className="flex gap-4 items-center animate-[fadeIn_0.2s_ease-out]">
-                            <input
-                              value={attr.name}
-                              onChange={(e) => updateAttribute(attr.id, 'name', e.target.value)}
-                              className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all"
-                              placeholder="Attribute Name (e.g. Birthday)"
-                            />
-                            <span className="text-slate-300 dark:text-slate-600 font-bold">:</span>
-                            <input
-                              value={attr.value}
-                              onChange={(e) => updateAttribute(attr.id, 'value', e.target.value)}
-                              className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all"
-                              placeholder="Value (e.g. 10/10/1990)"
-                            />
-                            <button
-                              onClick={() => removeAttribute(attr.id)}
-                              className="text-slate-400 hover:text-red-500 p-2 transition-colors shrink-0"
-                              title="Remove Attribute"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">close</span>
-                            </button>
-                          </div>
-                        ))}
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Additional Attributes</label>
+                        {customAttributes.map(attr => {
+                          const fieldConfig = AVAILABLE_FIELDS.find(f => f.label === attr.name);
+                          const inputType = fieldConfig?.type || 'text';
+
+                          return (
+                            <div key={attr.id} className="flex gap-4 items-center animate-[fadeIn_0.2s_ease-out]">
+                              <div className="flex-1 space-y-2">
+                                <div className="relative">
+                                  <select
+                                    value={AVAILABLE_FIELDS.some(f => f.label === attr.name) ? attr.name : (attr.name === '' ? '' : 'Custom')}
+                                    onChange={(e) => updateAttribute(attr.id, 'name', e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all appearance-none font-bold"
+                                  >
+                                    <option value="">Select Field...</option>
+                                    <optgroup label="Standard Fields">
+                                      {AVAILABLE_FIELDS.filter(f => 
+                                          !customAttributes.some(otherAttr => otherAttr.id !== attr.id && otherAttr.name === f.label)
+                                      ).map(f => (
+                                        <option key={f.label} value={f.label}>{f.label}</option>
+                                      ))}
+                                    </optgroup>
+                                    <option value="Custom">Other (Custom Field)</option>
+                                  </select>
+                                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none scale-75">expand_more</span>
+                                </div>
+                                
+                                { (attr.name === 'Custom' || (!AVAILABLE_FIELDS.some(f => f.label === attr.name) && attr.name !== '')) && (
+                                  <input
+                                    value={attr.name === 'Custom' ? '' : attr.name}
+                                    onChange={(e) => updateAttribute(attr.id, 'name', e.target.value)}
+                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold animate-[slideInDown_0.2s_ease-out]"
+                                    placeholder="Enter Custom Name..."
+                                    autoFocus
+                                  />
+                                )}
+                              </div>
+
+                              <span className="text-slate-300 dark:text-slate-600 font-bold">:</span>
+
+                              <div className="flex-[1.5] relative">
+                                {inputType === 'select' ? (
+                                  <select
+                                    value={attr.value}
+                                    onChange={(e) => updateAttribute(attr.id, 'value', e.target.value)}
+                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all appearance-none font-bold italic"
+                                  >
+                                    <option value="">Select...</option>
+                                    {fieldConfig?.options?.map(opt => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type={inputType}
+                                    value={attr.value}
+                                    onChange={(e) => updateAttribute(attr.id, 'value', e.target.value)}
+                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                    placeholder={`Enter ${attr.name || 'Value'}`}
+                                  />
+                                )}
+                              </div>
+
+                              <button
+                                onClick={() => removeAttribute(attr.id)}
+                                className="text-slate-400 hover:text-red-500 p-2 transition-colors shrink-0"
+                                title="Remove Attribute"
+                              >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -279,7 +362,7 @@ const AddContact = () => {
                         className="text-primary text-sm font-black uppercase tracking-widest flex items-center gap-2 hover:translate-x-1 transition-all"
                       >
                         <span className="material-symbols-outlined text-[20px]">add</span>
-                        {customAttributes.length === 0 ? "Add Custom Attribute" : "Add Another"}
+                        {customAttributes.length === 0 ? "Add Additional Attribute" : "Add Another"}
                       </button>
                     </div>
 

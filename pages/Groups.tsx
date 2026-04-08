@@ -17,6 +17,7 @@ const Groups: React.FC = () => {
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [groupToEdit, setGroupToEdit] = useState<ContactGroup | null>(null);
 
     const fetchGroups = async () => {
         if (!selectedWorkspace?.id || !token) return;
@@ -39,6 +40,26 @@ const Groups: React.FC = () => {
     useEffect(() => {
         fetchGroups();
     }, [selectedWorkspace, token]);
+
+    const handleDelete = async (groupId: string) => {
+        if (!window.confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
+        
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace?.id}/groups/${groupId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to delete group');
+            fetchGroups();
+        } catch (err: any) {
+            alert(err.message);
+        }
+    };
+
+    const handleEdit = (group: ContactGroup) => {
+        setGroupToEdit(group);
+        setIsCreateModalOpen(true);
+    };
 
     const filteredGroups = groups.filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -107,8 +128,26 @@ const Groups: React.FC = () => {
                                                     {group.type === 'static' ? 'list_alt' : 'bolt'}
                                                 </span>
                                             </div>
-                                            <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${group.type === 'static' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/20 dark:border-orange-800'}`}>
-                                                {group.type}
+                                            <div className="flex items-center gap-2">
+                                                <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${group.type === 'static' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/20 dark:border-orange-800'}`}>
+                                                    {group.type}
+                                                </div>
+                                                <div className="flex items-center gap-1 opacity-10 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleEdit(group); }}
+                                                        className="size-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all"
+                                                        title="Edit Group"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(group.id); }}
+                                                        className="size-7 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-600 transition-all"
+                                                        title="Delete Group"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -138,9 +177,14 @@ const Groups: React.FC = () => {
             {isCreateModalOpen && (
                 <CreateGroupModal
                     isOpen={isCreateModalOpen}
-                    onClose={() => setIsCreateModalOpen(false)}
+                    groupToEdit={groupToEdit}
+                    onClose={() => {
+                        setIsCreateModalOpen(false);
+                        setGroupToEdit(null);
+                    }}
                     onSuccess={() => {
                         setIsCreateModalOpen(false);
+                        setGroupToEdit(null);
                         fetchGroups();
                     }}
                 />
