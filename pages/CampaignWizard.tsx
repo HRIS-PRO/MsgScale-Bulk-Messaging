@@ -260,6 +260,10 @@ const CampaignWizard = () => {
   };
 
   const handleNext = () => {
+    if (step === 1 && !campaignName.trim()) {
+      alert("Please enter a Campaign Name to continue.");
+      return;
+    }
     if (step < 4) setStep((step + 1) as Step);
     else {
       handleSaveCampaign(true);

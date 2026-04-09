@@ -47,6 +47,31 @@ const Campaigns = () => {
     return role === 'Admin' || role === 'Manager';
   };
 
+  const handleRetryCampaign = async (campaignId: string) => {
+    if (!selectedWorkspace) return;
+    if (!window.confirm("Are you sure you want to retry sending failed messages for this campaign?")) return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}/${campaignId}/retry`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`,
+        }
+      });
+
+      if (response.ok) {
+        alert("Retry successfully initiated!");
+        fetchCampaigns();
+      } else {
+        const err = await response.json();
+        alert(`Failed to retry: ${err.message}`);
+      }
+    } catch (error) {
+      console.error("Retry Error:", error);
+      alert("An unexpected error occurred while retrying.");
+    }
+  };
+
   const handleReview = (campaign: any) => {
     setSelectedCampaign(campaign);
     setIsReviewModalOpen(true);
@@ -182,32 +207,46 @@ const Campaigns = () => {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-background-dark/50 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Campaign Name</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Channel</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Audience</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Campaign</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Creator</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Channel</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Performance</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-bold">Loading campaigns...</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-bold italic">Loading campaigns...</td>
                 </tr>
               )}
               {!isLoading && campaigns.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-bold">No campaigns found.</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-bold italic tracking-wide">No campaigns recorded yet.</td>
                 </tr>
               )}
               {campaigns.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-surface-hover/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold dark:text-white">{c.name}</span>
+                      <span className="text-sm font-bold dark:text-white uppercase tracking-tight">{c.name}</span>
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                         {new Date(c.createdAt).toLocaleDateString()}
                       </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-black shrink-0">
+                        {c.creatorName?.charAt(0) || 'U'}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black dark:text-white tracking-tight">{c.creatorName}</span>
+                        <span className="text-[10px] text-slate-400 font-bold lowercase">
+                          {c.creator?.email}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -215,7 +254,7 @@ const Campaigns = () => {
                       <span className={`material-symbols-outlined text-sm ${c.channel === 'WHATSAPP' ? 'text-green-500' : c.channel === 'SMS' ? 'text-blue-500' : 'text-purple-500'}`}>
                         {c.channel === 'WHATSAPP' ? 'chat' : c.channel === 'SMS' ? 'sms' : 'mail'}
                       </span>
-                      <span className="text-sm font-medium">{c.channel}</span>
+                      <span className="text-sm font-bold uppercase tracking-widest text-[10px]">{c.channel}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -228,8 +267,25 @@ const Campaigns = () => {
                       {c.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium dark:text-slate-300">
-                    {c.targetCount || '-'}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                       <div className="flex flex-col items-center px-3 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-white/5">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Reach</span>
+                          <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">{c.targetCount || '0'}</span>
+                       </div>
+                       <div className="flex flex-col items-center px-3 py-1 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100/50 dark:border-red-900/20">
+                          <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter">failed</span>
+                          <span className="text-xs font-black text-red-600 dark:text-red-400 leading-tight">{c.targetCount - c.sentCount || '0'}</span>
+                       </div>
+                       <div className="flex flex-col items-center px-3 py-1 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-900/20">
+                          <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Sent</span>
+                          <span className="text-xs font-black text-blue-600 dark:text-blue-400 leading-tight">{c.sentCount || '0'}</span>
+                       </div>
+                       {/* <div className="flex flex-col items-center px-3 py-1 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100/50 dark:border-red-900/20">
+                          <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter">retries</span>
+                          <span className="text-xs font-black text-red-600 dark:text-red-400 leading-tight">{c.failedCount || '0'}</span>
+                       </div> */}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
@@ -249,6 +305,15 @@ const Campaigns = () => {
                               title="Resend Approval Notification"
                             >
                               <span className="material-symbols-outlined text-xl">send</span>
+                            </button>
+                          )}
+                          {c.failedCount > 0 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRetryCampaign(c.id); }}
+                              className="size-10 flex items-center justify-center text-amber-400 hover:text-amber-500 hover:bg-amber-50 rounded-full transition-all border border-slate-100 dark:border-border-dark hover:border-amber-100 shadow-sm bg-white dark:bg-surface-dark"
+                              title="Retry Failed Messages"
+                            >
+                              <span className="material-symbols-outlined text-xl">replay</span>
                             </button>
                           )}
                           {(c.status === 'DRAFT' || c.status === 'REJECTED') && (
