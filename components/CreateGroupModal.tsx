@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { useRole } from '../RoleContext';
 
 interface Customer {
@@ -28,6 +29,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
     const [contacts, setContacts] = useState<Customer[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+    const [contextualData, setContextualData] = useState<{ identifier: string; data: Record<string, string> }[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<{ title: string; message: string; details?: string[] } | null>(null);
+    const [uploadSummary, setUploadSummary] = useState<{ matched: number; skipped: number } | null>(null);
 
     // --- Dynamic State ---
     const [rules, setRules] = useState<{ field: string; operator: string; value: string; logicGate: 'AND' | 'OR' }[]>([
@@ -56,6 +61,17 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                             setGroupType(data.type);
                             if (data.type === 'static') {
                                 setSelectedContactIds(new Set(data.customerIds || []));
+                                if (data.customers) {
+                                    setContacts(prev => {
+                                        const combined = [...data.customers, ...prev];
+                                        const seen = new Set();
+                                        return combined.filter(c => {
+                                            if (!c || seen.has(c.id)) return false;
+                                            seen.add(c.id);
+                                            return true;
+                                        });
+                                    });
+                                }
                             } else {
                                 setRules(data.rules || [{ field: 'customerType', operator: 'equals', value: '', logicGate: 'AND' }]);
                             }
@@ -103,7 +119,13 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
 
     if (!isOpen) return null;
 
-    const filteredContacts = contacts; // server-side filtering is now used
+    const filteredContacts = [...contacts].sort((a, b) => {
+        const aSel = selectedContactIds.has(a.id);
+        const bSel = selectedContactIds.has(b.id);
+        if (aSel && !bSel) return -1;
+        if (!aSel && bSel) return 1;
+        return 0;
+    });
 
     const toggleContact = (id: string) => {
         const next = new Set(selectedContactIds);
@@ -130,6 +152,103 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
         setRules(newRules);
     };
 
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        setUploadError(null);
+        setUploadSummary(null);
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const dataRaw = new Uint8Array(event.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(dataRaw, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet) as any[];
+
+                if (rows.length === 0) {
+                    setUploadError({ title: "File is empty", message: "We couldn't find any data rows." });
+                    return;
+                }
+
+                const allHeaders = Object.keys(rows[0]);
+                const identifierKey = allHeaders.find(h => 
+                    ['phone', 'mobile', 'email', 'identifier', 'mobilephone'].includes(h.toLowerCase())
+                );
+
+                if (!identifierKey) {
+                    setUploadError({
+                        title: "Missing ID Column",
+                        message: "Column header like 'Phone' or 'Email' is required for matching.",
+                        details: ["Phone", "Email", "Mobile", "Identifier"]
+                    });
+                    return;
+                }
+
+                const processedRows = rows.map(r => {
+                    const { [identifierKey]: id, ...rest } = r;
+                    return { identifier: String(id), data: rest };
+                });
+
+                setContextualData(processedRows);
+                
+                // Resolve identifiers to actual contacts
+                const identifiers = processedRows.map(r => r.identifier);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers/find-by-identifiers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ identifiers })
+                });
+
+                if (res.ok) {
+                    const matchedContacts: Customer[] = await res.json();
+                    
+                    // Merge into current contacts list
+                    setContacts(prev => {
+                        const combined = [...matchedContacts, ...prev];
+                        const seen = new Set();
+                        return combined.filter(c => {
+                            if (!c || seen.has(c.id)) return false;
+                            seen.add(c.id);
+                            return true;
+                        });
+                    });
+
+                    // Automatically select them
+                    setSelectedContactIds(prev => {
+                        const next = new Set(prev);
+                        matchedContacts.forEach(c => next.add(c.id));
+                        return next;
+                    });
+
+                    setUploadSummary({ 
+                        matched: matchedContacts.length, 
+                        skipped: processedRows.length - matchedContacts.length 
+                    });
+                } else {
+                    setUploadSummary({ matched: 0, skipped: processedRows.length });
+                }
+
+            } catch (err) {
+                setUploadError({ title: "Read Error", message: "Failed to parse the file." });
+            } finally {
+                setIsUploading(false);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    const removeContext = () => {
+        setContextualData([]);
+        setUploadSummary(null);
+        setUploadError(null);
+    };
+
     const removeRule = (index: number) => {
         setRules(rules.filter((_, i) => i !== index));
     };
@@ -151,6 +270,9 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
 
             if (groupType === 'static') {
                 payload.customerIds = Array.from(selectedContactIds);
+                if (contextualData.length > 0) {
+                    payload.contextualData = contextualData;
+                }
             } else {
                 // Remove empty rules
                 payload.rules = rules.filter(r => r.field && r.value.trim() !== '');
@@ -298,6 +420,88 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                                         </span>
                                         Select ALL Context
                                     </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                {contextualData.length === 0 ? (
+                                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                        <div className="flex gap-4 items-center">
+                                            <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-2xl">upload_file</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black dark:text-white uppercase tracking-tight italic">Populate via Contextual CSV</h4>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Auto-matches contacts & saves variable data</p>
+                                            </div>
+                                        </div>
+                                        <div className="relative">
+                                            <input type="file" onChange={handleFileUpload} accept=".csv,.xlsx,.xls" className="absolute inset-0 opacity-0 cursor-pointer" />
+                                            <button type="button" className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-sm">{isUploading ? 'sync' : 'upload_file'}</span>
+                                                {isUploading ? 'Magic...' : 'Upload List'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-[slideInUp_0.3s_ease-out]">
+                                        <div className="flex gap-4 items-center">
+                                            <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                                <span className="material-symbols-outlined font-black">check_circle</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-emerald-900 dark:text-emerald-300 uppercase tracking-tight italic">CSV Data Processed</h4>
+                                                <div className="flex items-center gap-3 mt-0.5">
+                                                    <p className="text-[10px] text-emerald-700 dark:text-emerald-500 font-bold uppercase tracking-widest">
+                                                       <span className="text-emerald-600 dark:text-emerald-400 font-black">{uploadSummary?.matched || 0}</span> Matched
+                                                    </p>
+                                                    {uploadSummary && uploadSummary.skipped > 0 && (
+                                                        <>
+                                                            <div className="size-1 bg-emerald-300/50 rounded-full"></div>
+                                                            <p className="text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-widest">
+                                                                <span className="font-black">{uploadSummary.skipped}</span> Not in System
+                                                            </p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={removeContext} className="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 underline underline-offset-4">Remove File</button>
+                                    </div>
+                                )}
+
+                                {uploadSummary && uploadSummary.skipped > 0 && (
+                                    <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-900/30 flex gap-3 animate-[fadeIn_0.3s_ease-out]">
+                                        <span className="material-symbols-outlined text-orange-500 text-sm">lightbulb</span>
+                                        <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed italic">
+                                            <strong>Note:</strong> {uploadSummary.skipped} contacts from your file aren't in the global directory. Only the {uploadSummary.matched} matched contacts will be added to this list.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {uploadError && (
+                                    <div className="bg-orange-50 dark:bg-orange-950/30 border-2 border-orange-200 dark:border-orange-900/50 rounded-2xl p-6 animate-[shake_0.5s_ease-out]">
+                                        <div className="flex gap-4 items-start">
+                                            <div className="size-10 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                                                <span className="material-symbols-outlined font-black">warning</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <div>
+                                                   <h4 className="text-sm font-black text-orange-900 dark:text-orange-200 uppercase tracking-tight">{uploadError.title}</h4>
+                                                   <p className="text-xs text-orange-800/80 dark:text-orange-300/80 font-bold leading-relaxed">{uploadError.message}</p>
+                                                </div>
+                                                {uploadError.details && (
+                                                    <div className="flex flex-wrap gap-2 pt-1">
+                                                        {uploadError.details.map(d => (
+                                                            <span key={d} className="px-2 py-1 bg-white dark:bg-[#111722] border border-orange-200 dark:border-orange-900/50 rounded-lg text-[10px] font-black text-orange-600 dark:text-orange-400 font-mono">
+                                                                {d}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 </div>
 
                                 <div className="bg-white dark:bg-[#0c1016] border border-slate-200 dark:border-border-dark rounded-2xl overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-border-dark">
