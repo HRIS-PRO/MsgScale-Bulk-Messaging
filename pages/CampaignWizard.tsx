@@ -1,5 +1,5 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRole } from '../RoleContext';
 import CreateGroupModal from '../components/CreateGroupModal';
@@ -35,6 +35,77 @@ const CampaignWizard = () => {
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [excludedSegments, setExcludedSegments] = useState<string[]>([]);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+
+  const [externalVariables, setExternalVariables] = useState<string[]>([]);
+  const [isUploadingExternal, setIsUploadingExternal] = useState(false);
+
+  const availableVariables = useMemo(() => {
+    const vars = [...commonVariables];
+    externalVariables.forEach(v => {
+      vars.push({ label: v, value: `{{${v}}}` });
+    });
+    return vars;
+  }, [externalVariables]);
+
+  const handleExternalDataUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingExternal(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet) as any[];
+
+        if (rows.length === 0) {
+          alert("The file appears to be empty.");
+          return;
+        }
+
+        // Identify headers (excluding the identifier)
+        const allHeaders = Object.keys(rows[0]);
+        const identifierKey = allHeaders.find(h => 
+          h.toLowerCase() === 'identifier' || 
+          h.toLowerCase() === 'phone' || 
+          h.toLowerCase() === 'email' || 
+          h.toLowerCase() === 'mobile'
+        );
+
+        if (!identifierKey) {
+          alert("Could not find an 'identifier', 'phone', or 'email' column to match contacts.");
+          return;
+        }
+
+        // Map identifier key to 'identifier' for the backend
+        const processedRows = rows.map(r => {
+          const { [identifierKey]: id, ...rest } = r;
+          return { identifier: id, ...rest };
+        });
+
+        const customVars = allHeaders.filter(h => h !== identifierKey);
+        setExternalVariables(customVars);
+
+        // Store rows in state temporarily to save later or upload now? 
+        // Let's upload now if campaign ID exists, otherwise wait.
+        // For now, let's keep it in a ref or state and upload on Save.
+        (window as any)._pendingExternalData = processedRows;
+
+        setToastMessage(`Imported ${processedRows.length} contextual records and ${customVars.length} new variables.`);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+
+      } catch (err) {
+        console.error("Upload error:", err);
+        alert("Failed to parse file.");
+      } finally {
+        setIsUploadingExternal(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const fetchGroups = async () => {
     if (!selectedWorkspace?.id || !token) return;
@@ -233,6 +304,20 @@ const CampaignWizard = () => {
 
       if (response.ok) {
         const campaign = await response.json();
+
+        // Upload pending external data if exists
+        const pendingData = (window as any)._pendingExternalData;
+        if (pendingData) {
+          await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}/${campaign.id}/external-data`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ rows: pendingData })
+          });
+          delete (window as any)._pendingExternalData;
+        }
 
         if (isSubmit) {
           // Immediately submit for approval
@@ -576,6 +661,36 @@ const CampaignWizard = () => {
                 </div>
 
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-2xl p-8 shadow-sm space-y-8">
+                  {/* External Data Upload */}
+                  {/* <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
+                    <div className="flex gap-4 items-center">
+                       <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <span className="material-symbols-outlined text-2xl">database</span>
+                       </div>
+                       <div>
+                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">External Contextual Data</h4>
+                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                            {externalVariables.length > 0 
+                              ? `Active: ${externalVariables.join(', ')}` 
+                              : 'Upload CSV with Phone + Custom Columns'
+                            }
+                          </p>
+                       </div>
+                    </div>
+                    <div className="relative">
+                       <input 
+                         type="file" 
+                         accept=".csv,.xlsx,.xls" 
+                         className="absolute inset-0 opacity-0 cursor-pointer" 
+                         onChange={handleExternalDataUpload}
+                       />
+                       <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sm">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
+                          {isUploadingExternal ? 'Processing...' : 'Upload Data'}
+                       </button>
+                    </div>
+                  </div> */}
+
                   {/* Sender Details */}
                   {selectedChannel === 'sms' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -590,6 +705,7 @@ const CampaignWizard = () => {
                       </div>
                     </div>
                   )}
+
 
                   {/* Subject & Preheader for Email */}
                   <div className="space-y-6">
@@ -698,13 +814,42 @@ const CampaignWizard = () => {
                       )}
                     </div>
                   </div>
+                  
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
+                    <div className="flex gap-4 items-center">
+                       <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <span className="material-symbols-outlined text-2xl">database</span>
+                       </div>
+                       <div>
+                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">External Contextual Data</h4>
+                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                            {externalVariables.length > 0 
+                              ? `Active: ${externalVariables.join(', ')}` 
+                              : 'Upload CSV with Phone + Custom Columns'
+                            }
+                          </p>
+                       </div>
+                    </div>
+                    <div className="relative">
+                       <input 
+                         type="file" 
+                         accept=".csv,.xlsx,.xls" 
+                         className="absolute inset-0 opacity-0 cursor-pointer" 
+                         onChange={handleExternalDataUpload}
+                       />
+                       <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sm">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
+                          {isUploadingExternal ? 'Processing...' : 'Upload Data'}
+                       </button>
+                    </div>
+                  </div>
 
                   {/* Editor Area */}
                   <div className="h-[550px] flex flex-col">
                     <VisualEditor
                       content={htmlContent}
                       onChange={(html) => setHtmlContent(html)}
-                      variables={commonVariables}
+                      variables={availableVariables}
                       type={selectedChannel === 'email' ? 'Email' : 'SMS'}
                     />
                   </div>
