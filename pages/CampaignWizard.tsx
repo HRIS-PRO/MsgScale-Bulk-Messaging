@@ -38,6 +38,7 @@ const CampaignWizard = () => {
 
   const [externalVariables, setExternalVariables] = useState<string[]>([]);
   const [isUploadingExternal, setIsUploadingExternal] = useState(false);
+  const [uploadError, setUploadError] = useState<{ title: string; message: string; details?: string[] } | null>(null);
 
   const availableVariables = useMemo(() => {
     const vars = [...commonVariables];
@@ -52,6 +53,7 @@ const CampaignWizard = () => {
     if (!file) return;
 
     setIsUploadingExternal(true);
+    setUploadError(null);
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
@@ -61,7 +63,10 @@ const CampaignWizard = () => {
         const rows = XLSX.utils.sheet_to_json(firstSheet) as any[];
 
         if (rows.length === 0) {
-          alert("The file appears to be empty.");
+          setUploadError({
+            title: "Your file is empty",
+            message: "We couldn't find any data rows in this spreadsheet. Please ensure it contains information below the headers.",
+          });
           return;
         }
 
@@ -70,12 +75,17 @@ const CampaignWizard = () => {
         const identifierKey = allHeaders.find(h => 
           h.toLowerCase() === 'identifier' || 
           h.toLowerCase() === 'phone' || 
-          h.toLowerCase() === 'email' || 
-          h.toLowerCase() === 'mobile'
+          h.toLowerCase() === 'mobile' ||
+          h.toLowerCase() === 'mobilephone' ||
+          h.toLowerCase() === 'email'
         );
 
         if (!identifierKey) {
-          alert("Could not find an 'identifier', 'phone', or 'email' column to match contacts.");
+          setUploadError({
+            title: "Missing Key Column",
+            message: "We need a way to match these rows to your contacts. Your file MUST have one of these column headers:",
+            details: ["Phone", "MobilePhone", "Email", "Identifier"]
+          });
           return;
         }
 
@@ -86,20 +96,28 @@ const CampaignWizard = () => {
         });
 
         const customVars = allHeaders.filter(h => h !== identifierKey);
-        setExternalVariables(customVars);
+        
+        if (customVars.length === 0) {
+          setUploadError({
+            title: "No Variable Columns Found",
+            message: "This file only contains the identifier. To use variables, add extra columns like 'DiscountCode' or 'Balance' to your CSV.",
+          });
+          return;
+        }
 
-        // Store rows in state temporarily to save later or upload now? 
-        // Let's upload now if campaign ID exists, otherwise wait.
-        // For now, let's keep it in a ref or state and upload on Save.
+        setExternalVariables(customVars);
         (window as any)._pendingExternalData = processedRows;
 
-        setToastMessage(`Imported ${processedRows.length} contextual records and ${customVars.length} new variables.`);
+        setToastMessage(`Success! Loaded ${processedRows.length} records with ${customVars.length} custom variables.`);
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
 
       } catch (err) {
         console.error("Upload error:", err);
-        alert("Failed to parse file.");
+        setUploadError({
+          title: "Format Not Recognized",
+          message: "We had trouble reading this file. Please ensure it is a valid CSV or Excel (.xlsx) file.",
+        });
       } finally {
         setIsUploadingExternal(false);
       }
@@ -815,34 +833,67 @@ const CampaignWizard = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
-                    <div className="flex gap-4 items-center">
-                       <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                          <span className="material-symbols-outlined text-2xl">database</span>
-                       </div>
-                       <div>
-                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">External Contextual Data</h4>
-                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
-                            {externalVariables.length > 0 
-                              ? `Active: ${externalVariables.join(', ')}` 
-                              : 'Upload CSV with Phone + Custom Columns'
-                            }
-                          </p>
-                       </div>
+                   <div className="space-y-4">
+                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6 transition-all hover:bg-primary/10">
+                      <div className="flex gap-4 items-center">
+                        <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                            <span className="material-symbols-outlined text-2xl">database</span>
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-black dark:text-white uppercase tracking-tight italic">Contextual Variables</h4>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                              {externalVariables.length > 0 
+                                ? `Ready: ${externalVariables.map(v => `{{${v}}}`).join(', ')}` 
+                                : 'Upload CSV to use custom data for each contact'
+                              }
+                            </p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input 
+                          type="file" 
+                          accept=".csv,.xlsx,.xls" 
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          onChange={handleExternalDataUpload}
+                        />
+                        <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 group">
+                            <span className="material-symbols-outlined text-sm group-hover:rotate-12 transition-transform">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
+                            {isUploadingExternal ? 'Processing...' : externalVariables.length > 0 ? 'Replace Data' : 'Upload CSV Data'}
+                        </button>
+                      </div>
                     </div>
-                    <div className="relative">
-                       <input 
-                         type="file" 
-                         accept=".csv,.xlsx,.xls" 
-                         className="absolute inset-0 opacity-0 cursor-pointer" 
-                         onChange={handleExternalDataUpload}
-                       />
-                       <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sm">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
-                          {isUploadingExternal ? 'Processing...' : 'Upload Data'}
-                       </button>
-                    </div>
-                  </div>
+
+                    {uploadError && (
+                      <div className="bg-orange-50 dark:bg-orange-950/30 border-2 border-orange-200 dark:border-orange-900/50 rounded-2xl p-6 animate-[shake_0.5s_ease-out]">
+                        <div className="flex gap-4 items-start">
+                          <div className="size-10 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined font-black">warning</span>
+                          </div>
+                          <div className="space-y-3">
+                            <div>
+                               <h4 className="text-sm font-black text-orange-900 dark:text-orange-200 uppercase tracking-tight">{uploadError.title}</h4>
+                               <p className="text-xs text-orange-800/80 dark:text-orange-300/80 font-bold leading-relaxed">{uploadError.message}</p>
+                            </div>
+                            {uploadError.details && (
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {uploadError.details.map(d => (
+                                  <span key={d} className="px-2 py-1 bg-white dark:bg-[#111722] border border-orange-200 dark:border-orange-900/50 rounded-lg text-[10px] font-black text-orange-600 dark:text-orange-400 font-mono">
+                                    {d}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <button 
+                              onClick={() => setUploadError(null)}
+                              className="text-[10px] font-black uppercase text-orange-600 dark:text-orange-400 underline underline-offset-4 hover:opacity-70 transition-opacity"
+                            >
+                              Dismiss error and try again
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                   </div>
 
                   {/* Editor Area */}
                   <div className="h-[550px] flex flex-col">
