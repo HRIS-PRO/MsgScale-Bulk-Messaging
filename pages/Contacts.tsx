@@ -218,6 +218,35 @@ const Contacts = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm("ARE YOU ABSOLUTELY SURE? This will delete EVERY contact in the system. This cannot be undone.")) return;
+    if (!window.confirm("FINAL WARNING: All groups and campaign analytics references will also be affected. Proceed?")) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers/all`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`
+        }
+      });
+      if (res.ok) {
+        setContacts([]);
+        setTotalContacts(0);
+        setSuccessMessage("Database cleared successfully.");
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        const errorData = await res.json();
+        alert(`Failed to clear database: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error("Error clearing database:", err);
+      alert("An error occurred while clearing the database.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto pb-20 animate-[fadeIn_0.3s_ease-out] theme-transition relative">
       {/* Header Section */}
@@ -234,6 +263,15 @@ const Contacts = () => {
             >
               <span className="material-symbols-outlined text-[18px]">person_add</span>
               New Contact
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={handleClearAll}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 text-[10px] md:text-xs font-black uppercase tracking-widest border border-red-200 dark:border-red-500/20 hover:bg-red-500 hover:text-white transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[18px]">delete_sweep</span>
+              Clear All
             </button>
           )}
         </div>
@@ -390,7 +428,12 @@ const Contacts = () => {
                 </tr>
               ) : (
                 filteredAndSortedContacts.map((contact) => {
-                  const avatarText = `${contact.firstName?.[0] || ''}${contact.surname?.[0] || ''}` || 'CC';
+                  const avatarText = contact.customerType === 'Corporate' 
+                    ? contact.fullName?.substring(0, 2).toUpperCase() || 'CO'
+                    : `${contact.firstName?.[0] || ''}${contact.surname?.[0] || ''}` || 'CC';
+                  const displayName = contact.customerType === 'Corporate' 
+                    ? contact.fullName 
+                    : `${contact.firstName || ''} ${contact.surname || ''}`.trim();
                   return (
                     <tr key={contact.id} className={`group hover:bg-slate-50 dark:hover:bg-white/5 transition-all ${selectedIds.has(contact.id) ? 'bg-primary/5' : ''}`}>
                       <td className="px-6 py-5">
@@ -408,8 +451,13 @@ const Contacts = () => {
                             {avatarText}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white italic tracking-tight">{contact.firstName} {contact.surname}</p>
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{contact.occupation || 'N/A'}</p>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white italic tracking-tight flex items-center gap-2">
+                              {displayName}
+                              {contact.customerType === 'Corporate' && (
+                                <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase tracking-tighter">Corp</span>
+                              )}
+                            </p>
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{contact.occupation || contact.sector || 'N/A'}</p>
                           </div>
                         </div>
                       </td>

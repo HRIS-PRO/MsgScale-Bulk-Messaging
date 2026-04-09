@@ -16,24 +16,24 @@ const EXPECTED_FIELDS = [
     { key: 'surname', label: 'Surname' },
     { key: 'firstName', label: 'First Name' },
     { key: 'otherName', label: 'Other Name' },
-    { key: 'fullName', label: 'Full Name' },
-    { key: 'dob', label: 'DOB' },
+    { key: 'fullName', label: 'Full Name', aliases: ['name', 'fullname', 'customername'] },
+    { key: 'dob', label: 'DOB', aliases: ['dateofbirth', 'birthdate'] },
     { key: 'gender', label: 'Gender' },
     { key: 'nationality', label: 'Nationality' },
     { key: 'stateOfOrigin', label: 'State of Origin' },
     { key: 'residentialState', label: 'Residential State' },
     { key: 'residentialTown', label: 'Residential Town' },
     { key: 'address', label: 'Address' },
-    { key: 'mobilePhone', label: 'Mobile Phone' },
+    { key: 'mobilePhone', label: 'Mobile Phone', aliases: ['phoneno', 'phonenumber', 'mobile', 'cell'] },
     { key: 'bvn', label: 'BVN' },
     { key: 'nin', label: 'NIN' },
-    { key: 'email', label: 'EMAIL' },
-    { key: 'tin', label: 'TIN' },
+    { key: 'email', label: 'EMAIL', aliases: ['emailaddress', 'useremail'] },
+    { key: 'tin', label: 'TIN', aliases: ['taxidentificationno', 'taxid'] },
     { key: 'educationLevel', label: 'Education Level' },
     { key: 'occupation', label: 'Occupation' },
     { key: 'sector', label: 'Sector' },
     { key: 'office', label: 'Office' },
-    { key: 'officePhone', label: 'Office Phone' },
+    { key: 'officePhone', label: 'Office Phone', aliases: ['officeno', 'workphone'] },
     { key: 'officeAddress', label: 'Office Address' },
     { key: 'nextOfKin', label: 'Next of Kin' },
     { key: 'nextOfKinAddress', label: 'Next of Kin Address' },
@@ -44,6 +44,12 @@ const EXPECTED_FIELDS = [
     { key: 'idExpiryDate', label: 'Id Expiry Date' },
     { key: 'isPep', label: 'Is Pep' },
     { key: 'pepDetails', label: 'Pep Details' },
+    { key: 'registrationNo', label: 'Registration No', aliases: ['rcno', 'rcnumber', 'regno', 'registrationnumber'] },
+    { key: 'dateOfIncorporation', label: 'Date Of Incorporation' },
+    { key: 'countryOfIncorporation', label: 'Country Of Incorporation' },
+    { key: 'stateOfIncorporation', label: 'State Of Incorporation' },
+    { key: 'contactPerson', label: 'Contact Person' },
+    { key: 'accountOfficer', label: 'Account Officer' },
     { key: 'externalCreatedAt', label: 'Created On' }
 ];
 
@@ -91,7 +97,9 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
                     let matches = 0;
                     EXPECTED_FIELDS.forEach(f => {
                         const cleanLabel = f.label.toLowerCase().replace(/[^a-z]/g, '');
-                        if (rowVals.includes(cleanLabel)) {
+                        const cleanAliases = (f as any).aliases?.map((a: string) => a.toLowerCase().replace(/[^a-z]/g, '')) || [];
+                        
+                        if (rowVals.includes(cleanLabel) || cleanAliases.some(alias => rowVals.includes(alias))) {
                             matches++;
                         }
                     });
@@ -114,10 +122,15 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
                 // Auto-map if names match approximately (ignoring spaces/case)
                 const initialMap: Record<string, string> = {};
                 EXPECTED_FIELDS.forEach(field => {
-                    const match = headers.find(h =>
-                        h && typeof h === 'string' &&
-                        h.toLowerCase().replace(/[^a-z]/g, '') === field.label.toLowerCase().replace(/[^a-z]/g, '')
-                    );
+                    const cleanLabel = field.label.toLowerCase().replace(/[^a-z]/g, '');
+                    const cleanAliases = (field as any).aliases?.map((a: string) => a.toLowerCase().replace(/[^a-z]/g, '')) || [];
+                    
+                    const match = headers.find(h => {
+                        if (!h || typeof h !== 'string') return false;
+                        const cleanHeader = h.toLowerCase().replace(/[^a-z]/g, '');
+                        return cleanHeader === cleanLabel || cleanAliases.includes(cleanHeader);
+                    });
+                    
                     if (match) initialMap[field.key] = match;
                 });
 

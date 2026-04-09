@@ -137,13 +137,13 @@ const AddContact = () => {
 
   const downloadTemplate = () => {
     const headers = [
-      'Customer Type', 'Customer External ID', 'Title', 'Surname', 'First Name',
-      'Other Name', 'Full Name', 'Date of Birth', 'Gender', 'Nationality',
-      'State of Origin', 'Residential State', 'Residential Town', 'Address', 'Mobile Phone',
-      'BVN', 'NIN', 'Email', 'TIN', 'Education Level',
-      'Occupation', 'Sector', 'Office', 'Office Phone', 'Office Address',
-      'Next of Kin', 'Next of Kin Address', 'Next of Kin Phone', 'ID Card Type', 'ID Card No',
-      'ID Issue Date', 'ID Expiry Date', 'Is PEP', 'PEP Details', 'External Created At'
+      'Customer Type', 'Customer External ID', 'Name', 'Registration No', 'Date Of Incorporation',
+      'Sector', 'Country Of Incorporation', 'State Of Incorporation', 'Contact Person', 'Address',
+      'Phone No', 'Office No', 'Tax Identification No', 'Email Address', 'Account Officer',
+      'Title', 'Surname', 'First Name', 'Other Name', 'Date of Birth', 'Gender', 'Nationality',
+      'State of Origin', 'Residential State', 'Residential Town', 'BVN', 'NIN', 'Education Level',
+      'Occupation', 'Office Address', 'Next of Kin', 'Next of Kin Address', 'Next of Kin Phone',
+      'ID Card Type', 'ID Card No', 'ID Issue Date', 'ID Expiry Date', 'Is PEP', 'PEP Details', 'Created On'
     ];
 
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\n";
