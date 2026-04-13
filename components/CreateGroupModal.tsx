@@ -575,9 +575,18 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                                                     <option value="fullName">Full Name</option>
                                                     <option value="email">Email</option>
                                                     <option value="mobilePhone">Phone Number</option>
+                                                    <option value="dob">Date of Birth</option>
                                                     <option value="gender">Gender</option>
+                                                    <option value="nationality">Nationality</option>
+                                                    <option value="stateOfOrigin">State of Origin</option>
+                                                    <option value="residentialState">Residential State</option>
+                                                    <option value="residentialTown">Residential Town</option>
                                                     <option value="occupation">Occupation</option>
-                                                    <option value="stateOfOrigin">State</option>
+                                                    <option value="sector">Sector</option>
+                                                    <option value="officeAddress">Office Address</option>
+                                                    <option value="isPep">Is PEP</option>
+                                                    <option value="idIssueDate">ID Issue Date</option>
+                                                    <option value="idExpiryDate">ID Expiry Date</option>
                                                 </select>
     
                                                 <select
