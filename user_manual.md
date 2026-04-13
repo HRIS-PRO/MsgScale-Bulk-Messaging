@@ -7,6 +7,7 @@ Welcome to the **MsgScale Enterprise** platform. This manual provides a comprehe
 ## 🚀 Getting Started
 
 ### 1. Authentication
+*   **Official URL**: [https://msg.noltfinance.com](https://msg.noltfinance.com)
 *   **Sign In**: Access the platform using your corporate email and password.
 *   **Security**: Your session is protected by enterprise-grade encryption. If you remain inactive for more than 30 minutes, you will be automatically logged out to protect your data.
 

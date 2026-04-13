@@ -154,8 +154,8 @@ const CampaignWizard = () => {
   // Step 3: Content State
   const [fromName, setFromName] = useState('');
   const [replyTo, setReplyTo] = useState('support@acme.com');
-  const [subject, setSubject] = useState('🚀 Special Offer just for you, {{firstName}}!');
-  const [preheader, setPreheader] = useState('Open to see your exclusive summer discount codes inside.');
+  const [subject, setSubject] = useState('');
+  const [preheader, setPreheader] = useState('');
   const [htmlContent, setHtmlContent] = useState(`
 <p>Hi <span class="bg-primary/20 text-primary px-1.5 py-0.5 rounded-md font-bold">{{firstName}}</span>,</p>
 <p>We are excited to announce our latest product update. It comes packed with features you requested.</p>
@@ -728,7 +728,7 @@ const CampaignWizard = () => {
                   {/* Subject & Preheader for Email */}
                   <div className="space-y-6">
                     {selectedChannel === 'email' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[slideDown_0.3s_ease-out]">
+                      <div className="grid grid-cols-1 gap-6 animate-[slideDown_0.3s_ease-out]">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Subject Line</label>
@@ -740,11 +740,9 @@ const CampaignWizard = () => {
                             <input
                               value={subject}
                               onChange={(e) => setSubject(e.target.value)}
-                              className="w-full px-4 py-3 pr-24 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold italic outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold italic outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400/30 dark:placeholder:text-slate-600/30"
+                              placeholder="Input subject"
                             />
-                            <button className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-primary">
-                              Personalize
-                            </button>
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -752,8 +750,8 @@ const CampaignWizard = () => {
                           <input
                             value={preheader}
                             onChange={(e) => setPreheader(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            placeholder="Brief summary following the subject..."
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#111722] border border-slate-200 dark:border-border-dark text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400/30 dark:placeholder:text-slate-600/30"
+                            placeholder="input subject preview text"
                           />
                         </div>
                       </div>

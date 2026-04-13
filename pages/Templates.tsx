@@ -91,6 +91,8 @@ const Templates = () => {
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [filterType, setFilterType] = useState<'All' | 'Email' | 'SMS' | 'WhatsApp'>('All');
   const [isSaving, setIsSaving] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
   const [selectedPresetType, setSelectedPresetType] = useState<Template['type']>('Email');
 
@@ -178,6 +180,7 @@ const Templates = () => {
 
   const handleDelete = async (id: string) => {
     if (!token || !window.confirm('Are you sure you want to delete this template?')) return;
+    setDeletingId(id);
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/templates/${id}`, {
         method: 'DELETE',
@@ -188,6 +191,44 @@ const Templates = () => {
       }
     } catch (error) {
       console.error('Failed to delete template:', error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDuplicate = async (template: Template) => {
+    if (!token || isSaving) return;
+
+    setIsSaving(true);
+    setDuplicatingId(template.id);
+    const { id, createdAt, updatedAt, ...templateData } = template;
+    const duplicatedTemplate = {
+      ...templateData,
+      title: `${template.title} (Copy)`,
+      status: 'Draft'
+    };
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/templates`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(duplicatedTemplate)
+      });
+
+      if (response.ok) {
+        await fetchTemplates();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to duplicate: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to duplicate template:', error);
+    } finally {
+      setIsSaving(false);
+      setDuplicatingId(null);
     }
   };
 
@@ -394,14 +435,37 @@ const Templates = () => {
                   </span>
                 </div>
 
-                {/* VISUAL OVERLAY ACTIONS */}
                 <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px] flex items-center justify-center gap-4">
-                  <button onClick={() => handleEdit(t)} className="size-12 rounded-full bg-white text-primary flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all">
+                  {duplicatingId === t.id ? (
+                    <div className="size-12 rounded-full bg-white flex items-center justify-center shadow-2xl transition-all">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handleDuplicate(t)} 
+                      title="Duplicate Template"
+                      disabled={!!duplicatingId || !!deletingId}
+                      className="size-12 rounded-full bg-white text-blue-500 flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined">content_copy</span>
+                    </button>
+                  )}
+                  <button onClick={() => handleEdit(t)} disabled={!!duplicatingId || !!deletingId} className="size-12 rounded-full bg-white text-primary flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all disabled:opacity-50">
                     <span className="material-symbols-outlined">edit</span>
                   </button>
-                  <button onClick={() => handleDelete(t.id)} className="size-12 rounded-full bg-white text-red-500 flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all">
-                    <span className="material-symbols-outlined text-xl">delete</span>
-                  </button>
+                  {deletingId === t.id ? (
+                    <div className="size-12 rounded-full bg-white flex items-center justify-center shadow-2xl transition-all">
+                      <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handleDelete(t.id)} 
+                      disabled={!!duplicatingId || !!deletingId} 
+                      className="size-12 rounded-full bg-white text-red-500 flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-xl">delete</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
