@@ -7,7 +7,7 @@ This document records the architectural and design journey of the MsgScale Enter
 ## 🏗 Phase 1: Foundation & Core Architecture
 *   **Initial Setup**: Bootstrapped the application using React 19 and Tailwind CSS.
 *   **Theming Engine**: Implemented a robust "Dark Mode First" strategy.
-*   **Routing Structure**: Established a multi-tier routing system.
+*   **Routing Structure**: Established a multi-tier routing system using `HashRouter` to ensure compatibility across diverse hosting environments.
 
 ## 👥 Phase 4: Contact & Audience Engine
 *   **Segmentation**: Add logic to filter contacts into "Groups" (VIP, Leads, etc.).
@@ -23,5 +23,10 @@ This document records the architectural and design journey of the MsgScale Enter
 *   **Integrations Hub**: Built specialized UI for SMS and Email provider configuration.
 *   **Team Management**: Added user registry and RBAC invitation system.
 
+## 🛠 Phase 6: Production Hardening & Reliability
+*   **Routing Stability**: Fixed a critical 404 error on logout in deployed environments. Migrated hardcoded `window.location.href = '/login'` redirects to standardized `RoleContext` logout methods using `window.location.hash`.
+*   **Workspace Navigation**: Standardized internal navigation after workspace deletion to use hash-fragments, ensuring the SPA state is preserved and server-side routes aren't incorrectly triggered.
+*   **Session Management**: Implemented idle-logout logic (30 minutes) and synchronized state across `RoleContext` and `localStorage`.
+
 ---
-*Last Updated: 2024-05-24*
+*Last Updated: 2026-04-13*

@@ -109,7 +109,7 @@ const GeneralSettings = () => {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) throw new Error((await res.json()).message);
-      window.location.href = '/#/auth/workspaces';
+      window.location.hash = '#/auth/workspaces';
     } catch (err: any) {
       alert(err.message || 'Failed to delete');
       setIsDeleting(false);

@@ -93,7 +93,7 @@ const WorkspaceSettings = () => {
             }
 
             // Successfully deleted. We need to clear selected workspace and redirect to selection
-            window.location.href = '/auth/workspaces';
+            window.location.hash = '#/auth/workspaces';
         } catch (error: any) {
             alert(error.message);
             setIsDeleting(false);
