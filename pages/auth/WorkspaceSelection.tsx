@@ -5,7 +5,7 @@ import { useRole } from '../../RoleContext';
 
 const WorkspaceSelection = ({ onSelect }: { onSelect: () => void }) => {
   const navigate = useNavigate();
-  const { user, token, role, selectWorkspace } = useRole();
+  const { user, token, role, selectWorkspace, logout } = useRole();
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,10 +94,7 @@ const WorkspaceSelection = ({ onSelect }: { onSelect: () => void }) => {
                 CREATE NEW WORKSPACE
               </button>
               <button
-                onClick={() => {
-                  localStorage.removeItem('msgscale_token');
-                  window.location.href = '/login';
-                }}
+                onClick={logout}
                 className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[18px]">logout</span>
@@ -107,10 +104,7 @@ const WorkspaceSelection = ({ onSelect }: { onSelect: () => void }) => {
           )}
           {!canCreateWorkspace && (
             <button
-              onClick={() => {
-                localStorage.removeItem('msgscale_token');
-                window.location.href = '/login';
-              }}
+              onClick={logout}
               className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">logout</span>
