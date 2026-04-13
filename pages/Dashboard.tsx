@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useRole } from '../RoleContext';
 
@@ -11,11 +11,16 @@ const Dashboard = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [statsData, setStatsData] = useState<any>(null);
+  const [anniversaries, setAnniversaries] = useState<{ inThreeDays: any[], upcoming: any[] }>({ inThreeDays: [], upcoming: [] });
+  const [isFetchingAnniversaries, setIsFetchingAnniversaries] = useState(false);
   const [chartRange, setChartRange] = useState<'30D' | '14D' | '7D'>('30D');
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (selectedWorkspace?.id && token) {
       fetchStats();
+      fetchAnniversaries();
     }
   }, [selectedWorkspace?.id, token]);
 
@@ -32,6 +37,22 @@ const Dashboard = () => {
       console.error("Failed to fetch dashboard stats", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAnniversaries = async () => {
+    setIsFetchingAnniversaries(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/${selectedWorkspace!.id}/anniversaries`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setAnniversaries(await response.json());
+      }
+    } catch (err) {
+      console.error("Failed to fetch anniversaries", err);
+    } finally {
+      setIsFetchingAnniversaries(false);
     }
   };
 
@@ -66,7 +87,7 @@ const Dashboard = () => {
               <h3 className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tight">{stat.value}</h3>
               {stat.trend && (
                 <span className={`flex items-center text-[10px] font-black px-2 py-0.5 rounded-full ${stat.up ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-red-600 bg-red-50 dark:bg-red-900/20'}`}>
-                  <span className="material-symbols-outlined text-[14px] mr-0.5">{stat.up ? 'trending_up' : 'trending_down'}</span> {stat.trend}
+                  <span className="material-symbols-outlined text-[14px] mr-1">{stat.up ? 'trending_up' : 'trending_down'}</span> {stat.trend}
                 </span>
               )}
             </div>
@@ -82,8 +103,8 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-start mb-8">
             <div>
               <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-widest">Delivery Performance</h3>
@@ -134,9 +155,12 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-1 p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-widest mb-8">Channel Health</h3>
-          <div className="space-y-8">
+        <div className="lg:col-span-4 p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-widest">Channel Health</h3>
+            <span className="px-2 py-1 rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 text-[9px] font-black uppercase tracking-tighter">Live</span>
+          </div>
+          <div className="space-y-6">
             {isLoading ? (
               <div className="w-full flex flex-col items-center justify-center text-slate-400 py-10">
                 <span className="material-symbols-outlined text-4xl animate-spin mb-4">refresh</span>
@@ -162,6 +186,74 @@ const Dashboard = () => {
           <button className="w-full mt-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary transition-all">
             System Status Report
           </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <span className="material-symbols-outlined text-8xl text-primary font-black">celebration</span>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-widest mb-2">Anniversary Alerts</h3>
+            <p className="text-xs text-slate-500 font-medium mb-8">Proactive marketing opportunities for the next 7 days</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {isFetchingAnniversaries ? (
+                <div className="col-span-full py-10 flex flex-col items-center text-slate-400">
+                  <span className="material-symbols-outlined text-4xl animate-spin mb-2">refresh</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest">Scanning Contacts...</p>
+                </div>
+              ) : (anniversaries.inThreeDays.length === 0 && anniversaries.upcoming.length === 0) ? (
+                <div className="col-span-full py-10 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
+                  <span className="material-symbols-outlined text-4xl text-slate-200 dark:text-slate-700 mb-2">event_busy</span>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No upcoming anniversaries</p>
+                </div>
+              ) : (
+                <>
+                  {[...anniversaries.inThreeDays, ...anniversaries.upcoming].slice(0, 4).map((ann, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => navigate('/campaigns/new')}
+                      className={`p-4 rounded-xl border ${ann.daysUntil === 3 ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30' : 'bg-white dark:bg-slate-900/50 border-slate-100 dark:border-slate-800'} transition-transform hover:scale-[1.02] cursor-pointer`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`size-8 rounded-lg flex items-center justify-center ${ann.type === 'Birthday' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'}`}>
+                          <span className="material-symbols-outlined text-lg">{ann.type === 'Birthday' ? 'cake' : 'domain'}</span>
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${ann.daysUntil === 3 ? 'text-amber-600' : 'text-slate-400'}`}>
+                          {ann.daysUntil} Days Left
+                        </span>
+                      </div>
+                      <p className="text-sm font-black text-slate-900 dark:text-white truncate italic">{ann.name}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{ann.type} • {ann.date}</p>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-1 p-8 rounded-2xl bg-slate-900 dark:bg-primary/10 border border-slate-800 dark:border-primary/20 shadow-xl overflow-hidden relative group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent"></div>
+          <div className="relative z-10 flex flex-col h-full">
+            <h3 className="text-base font-black text-white uppercase tracking-widest mb-4 italic">Action required</h3>
+            <p className="text-sm text-slate-300 dark:text-slate-200 leading-relaxed mb-8">
+              There are <span className="text-white font-black">{anniversaries.inThreeDays.length} urgent</span> marketing opportunities today.
+            </p>
+            <div className="mt-auto space-y-3">
+              <button 
+                onClick={() => navigate('/campaigns/new')}
+                className="w-full py-4 rounded-xl bg-white text-slate-900 text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 group/btn shadow-lg"
+              >
+                Create Campaign <span className="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+              <button className="w-full py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors">
+                Dismiss Alerts
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
