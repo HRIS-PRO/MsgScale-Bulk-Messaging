@@ -98,7 +98,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
                     EXPECTED_FIELDS.forEach(f => {
                         const cleanLabel = f.label.toLowerCase().replace(/[^a-z]/g, '');
                         const cleanAliases = (f as any).aliases?.map((a: string) => a.toLowerCase().replace(/[^a-z]/g, '')) || [];
-                        
+
                         if (rowVals.includes(cleanLabel) || cleanAliases.some(alias => rowVals.includes(alias))) {
                             matches++;
                         }
@@ -124,13 +124,13 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
                 EXPECTED_FIELDS.forEach(field => {
                     const cleanLabel = field.label.toLowerCase().replace(/[^a-z]/g, '');
                     const cleanAliases = (field as any).aliases?.map((a: string) => a.toLowerCase().replace(/[^a-z]/g, '')) || [];
-                    
+
                     const match = headers.find(h => {
                         if (!h || typeof h !== 'string') return false;
                         const cleanHeader = h.toLowerCase().replace(/[^a-z]/g, '');
                         return cleanHeader === cleanLabel || cleanAliases.includes(cleanHeader);
                     });
-                    
+
                     if (match) initialMap[field.key] = match;
                 });
 
