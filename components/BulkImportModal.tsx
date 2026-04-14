@@ -42,7 +42,7 @@ const EXPECTED_FIELDS = [
     { key: 'idCardNo', label: 'Id Card No' },
     { key: 'idIssueDate', label: 'Id Issue Date' },
     { key: 'idExpiryDate', label: 'Id Expiry Date' },
-    { key: 'isPep', label: 'Is Pep' },
+    { key: 'isPep', label: 'Is Pep', aliases: ['pep', 'isapep'] },
     { key: 'pepDetails', label: 'Pep Details' },
     { key: 'registrationNo', label: 'Registration No', aliases: ['rcno', 'rcnumber', 'regno', 'registrationnumber'] },
     { key: 'dateOfIncorporation', label: 'Date Of Incorporation' },
