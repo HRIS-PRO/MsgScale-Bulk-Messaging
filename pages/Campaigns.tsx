@@ -268,24 +268,39 @@ const Campaigns = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                       <div className="flex flex-col items-center px-3 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-white/5">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Reach</span>
-                          <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">{c.targetCount || '0'}</span>
+                    {c.anniversaryConfig ? (
+                       <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                             <div className="size-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                             <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic">Recurring Anniversary</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Pool</span>
+                                <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">{c.targetCount || '0'}</span>
+                             </div>
+                             <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Sent</span>
+                                <span className="text-xs font-black text-blue-600 dark:text-blue-400 leading-tight">{c.sentCount || '0'}</span>
+                             </div>
+                          </div>
                        </div>
-                       <div className="flex flex-col items-center px-3 py-1 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100/50 dark:border-red-900/20">
-                          <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter">failed</span>
-                          <span className="text-xs font-black text-red-600 dark:text-red-400 leading-tight">{c.targetCount - c.sentCount || '0'}</span>
-                       </div>
-                       <div className="flex flex-col items-center px-3 py-1 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-900/20">
-                          <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Sent</span>
-                          <span className="text-xs font-black text-blue-600 dark:text-blue-400 leading-tight">{c.sentCount || '0'}</span>
-                       </div>
-                       {/* <div className="flex flex-col items-center px-3 py-1 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100/50 dark:border-red-900/20">
-                          <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter">retries</span>
-                          <span className="text-xs font-black text-red-600 dark:text-red-400 leading-tight">{c.failedCount || '0'}</span>
-                       </div> */}
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-4">
+                         <div className="flex flex-col items-center px-3 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-white/5">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Reach</span>
+                            <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">{c.targetCount || '0'}</span>
+                         </div>
+                         <div className="flex flex-col items-center px-3 py-1 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100/50 dark:border-red-900/20">
+                            <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter">failed</span>
+                            <span className="text-xs font-black text-red-600 dark:text-red-400 leading-tight">{c.failedCount || '0'}</span>
+                         </div>
+                         <div className="flex flex-col items-center px-3 py-1 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-900/20">
+                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Sent</span>
+                            <span className="text-xs font-black text-blue-600 dark:text-blue-400 leading-tight">{c.sentCount || '0'}</span>
+                         </div>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">

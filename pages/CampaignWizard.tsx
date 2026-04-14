@@ -39,6 +39,15 @@ const CampaignWizard = () => {
   const [externalVariables, setExternalVariables] = useState<string[]>([]);
   const [isUploadingExternal, setIsUploadingExternal] = useState(false);
   const [uploadError, setUploadError] = useState<{ title: string; message: string; details?: string[] } | null>(null);
+  const [matchStatus, setMatchStatus] = useState<{
+    matched: number;
+    unmatched: number;
+    unmatchedIdentifiers: string[];
+  } | null>(null);
+  const [showUnmatched, setShowUnmatched] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
+
+
 
   const availableVariables = useMemo(() => {
     const vars = [...commonVariables];
@@ -72,13 +81,14 @@ const CampaignWizard = () => {
 
         // Identify headers (excluding the identifier)
         const allHeaders = Object.keys(rows[0]);
-        const identifierKey = allHeaders.find(h => 
-          h.toLowerCase() === 'identifier' || 
-          h.toLowerCase() === 'phone' || 
-          h.toLowerCase() === 'mobile' ||
-          h.toLowerCase() === 'mobilephone' ||
-          h.toLowerCase() === 'email'
-        );
+        const identifierKey = allHeaders.find(h => {
+          const clean = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return [
+            'identifier', 'externalid', 'customerid',
+            'phone', 'mobile', 'cell', 'phoneno', 'mobilephone', 'phonenumber',
+            'email', 'emailaddress', 'useremail'
+          ].includes(clean);
+        });
 
         if (!identifierKey) {
           setUploadError({
@@ -108,9 +118,19 @@ const CampaignWizard = () => {
         setExternalVariables(customVars);
         (window as any)._pendingExternalData = processedRows;
 
+        // Reset match status to show loading
+        setMatchStatus(null);
+
+        // Trigger Match Preview if groups are selected
+        if (selectedSegments.length > 0 && token && selectedWorkspace?.id) {
+          triggerMatchPreview(selectedSegments, processedRows);
+        }
+
         setToastMessage(`Success! Loaded ${processedRows.length} records with ${customVars.length} custom variables.`);
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
+
+
 
       } catch (err) {
         console.error("Upload error:", err);
@@ -148,6 +168,41 @@ const CampaignWizard = () => {
       fetchGroups();
     }
   }, [step, selectedWorkspace, token]);
+
+  const triggerMatchPreview = async (groupIds: string[], externalData: any[]) => {
+    if (!token || !selectedWorkspace?.id) return;
+    setIsMatching(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${selectedWorkspace.id}/preview-context-match`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ groupIds, externalData })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMatchStatus(data);
+      }
+    } catch (err) {
+      console.error("Match preview failed:", err);
+    } finally {
+      setIsMatching(false);
+    }
+  };
+
+
+  // Re-trigger match preview when segments change if data is already uploaded
+  useEffect(() => {
+    const pendingData = (window as any)._pendingExternalData;
+    if (pendingData && selectedSegments.length > 0) {
+      triggerMatchPreview(selectedSegments, pendingData);
+    } else if (pendingData && selectedSegments.length === 0) {
+      setMatchStatus({ matched: 0, unmatched: pendingData.length, unmatchedIdentifiers: pendingData.map((r: any) => r.identifier) });
+    }
+  }, [selectedSegments]);
+
 
 
 
@@ -679,35 +734,100 @@ const CampaignWizard = () => {
                 </div>
 
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-2xl p-8 shadow-sm space-y-8">
-                  {/* External Data Upload */}
-                  {/* <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
-                    <div className="flex gap-4 items-center">
-                       <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  {/* External Data Upload & Match Preview */}
+                  <div className="space-y-4">
+                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
+                      <div className="flex gap-4 items-center">
+                        <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                           <span className="material-symbols-outlined text-2xl">database</span>
-                       </div>
-                       <div>
-                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">External Contextual Data</h4>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tight italic">Personalization Variables (CSV)</h4>
                           <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
-                            {externalVariables.length > 0 
-                              ? `Active: ${externalVariables.join(', ')}` 
-                              : 'Upload CSV with Phone + Custom Columns'
+                            {externalVariables.length > 0
+                              ? `Active: ${externalVariables.join(', ')}`
+                              : 'Upload CSV with Phone/Email + Custom Data'
                             }
                           </p>
-                       </div>
-                    </div>
-                    <div className="relative">
-                       <input 
-                         type="file" 
-                         accept=".csv,.xlsx,.xls" 
-                         className="absolute inset-0 opacity-0 cursor-pointer" 
-                         onChange={handleExternalDataUpload}
-                       />
-                       <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept=".csv,.xlsx,.xls"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          onChange={handleExternalDataUpload}
+                        />
+                        <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
                           <span className="material-symbols-outlined text-sm">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
-                          {isUploadingExternal ? 'Processing...' : 'Upload Data'}
-                       </button>
+                          {isUploadingExternal ? 'Processing...' : externalVariables.length > 0 ? 'Replace File' : 'Upload CSV'}
+                        </button>
+                      </div>
                     </div>
-                  </div> */}
+
+                    {(isMatching || matchStatus) && (
+                      <div className="bg-white dark:bg-[#1e293b]/30 border border-slate-200 dark:border-border-dark rounded-2xl overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+                        <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-border-dark bg-slate-50/30 dark:bg-black/10">
+                          {isMatching ? (
+                            <div className="flex items-center gap-3 py-1">
+                              <span className="material-symbols-outlined text-primary animate-spin text-lg">sync</span>
+                              <span className="text-xs font-black uppercase tracking-widest text-primary animate-pulse">Running Match Analysis...</span>
+                            </div>
+                          ) : matchStatus ? (
+                            <>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Matching Status</span>
+
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-500 rounded-lg font-black text-xs">
+                                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                  {matchStatus.matched ?? 0} Matched
+                                </div>
+
+                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-xs ${matchStatus.unmatched > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-500/10 text-slate-400'}`}>
+                                  <span className="material-symbols-outlined text-[16px]">error</span>
+                                  {matchStatus.unmatched ?? 0} Unmatched
+                                </div>
+                              </div>
+                              {matchStatus.unmatched > 0 && (
+                                <button
+                                  onClick={() => setShowUnmatched(!showUnmatched)}
+                                  className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline bg-primary/5 px-2 py-1 rounded-md transition-colors"
+                                >
+                                  {showUnmatched ? 'Hide Unmatched' : 'View Unmatched'}
+                                  <span className="material-symbols-outlined text-sm">{showUnmatched ? 'expand_less' : 'expand_more'}</span>
+                                </button>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+
+                        {!isMatching && matchStatus && showUnmatched && (matchStatus.unmatchedIdentifiers?.length ?? 0) > 0 && (
+                          <div className="p-4 bg-slate-50/50 dark:bg-black/20 max-h-32 overflow-y-auto no-scrollbar">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Identifiers not found in selected groups:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {matchStatus.unmatchedIdentifiers.map((id, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-white dark:bg-[#111722] border border-slate-200 dark:border-border-dark rounded text-[9px] font-mono font-bold text-slate-600 dark:text-slate-400">
+                                  {id}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {!isMatching && matchStatus && matchStatus.matched === 0 && selectedSegments.length > 0 && (
+                          <div className="p-4 bg-amber-500/5 flex items-start gap-3">
+                            <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
+                            <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                              <span className="font-bold uppercase tracking-tight block mb-0.5">Zero Matches Found</span>
+                              The identifiers in your CSV don't match any contacts in the selected groups. Please double-check your "Phone" or "Email" columns.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+
 
                   {/* Sender Details */}
                   {selectedChannel === 'sms' && (

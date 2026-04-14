@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isOpen, onClose }) => {
               <span className="material-symbols-outlined text-white" style={{ fontSize: '28px' }}>hub</span>
             </div>
             <div className="flex flex-col">
-              <h1 className="text-base font-bold leading-tight dark:text-white">MsgPlatform</h1>
+              <h1 className="text-base font-bold leading-tight dark:text-white">MsgScale</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">Enterprise Workspace</p>
             </div>
           </div>

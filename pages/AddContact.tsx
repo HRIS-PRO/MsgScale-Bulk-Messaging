@@ -40,11 +40,19 @@ const AddContact = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Manual Entry Form State
+  const [customerType, setCustomerType] = useState<'Individual' | 'Corporate'>('Individual');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState(''); // Company Name
   const [email, setEmail] = useState('');
   const [mobilePhone, setMobilePhone] = useState('');
   const [countryCode, setCountryCode] = useState('+234'); // Default to Nigeria
+  const [registrationNo, setRegistrationNo] = useState('');
+  const [dateOfIncorporation, setDateOfIncorporation] = useState('');
+  const [tin, setTin] = useState('');
+  const [sector, setSector] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [officeAddress, setOfficeAddress] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Attribute State
@@ -69,8 +77,12 @@ const AddContact = () => {
   };
 
   const handleSaveContact = async () => {
-    if (!firstName || !lastName || !mobilePhone || !email) {
-      alert("Please enter First Name, Last Name, Email, and Phone Number at a minimum.");
+    if (customerType === 'Individual' && (!firstName || !lastName || !mobilePhone || !email)) {
+      alert("Please enter First Name, Last Name, Email, and Phone Number.");
+      return;
+    }
+    if (customerType === 'Corporate' && (!fullName || !mobilePhone || !email)) {
+      alert("Please enter Company Name, Email, and Phone Number.");
       return;
     }
 
@@ -94,8 +106,16 @@ const AddContact = () => {
     const formattedMobile = mobilePhone.startsWith('0') ? mobilePhone.substring(1) : mobilePhone;
 
     const payload = [{
-      "First Name": firstName,
-      "Surname": lastName,
+      "Customer Type": customerType,
+      "First Name": customerType === 'Individual' ? firstName : '',
+      "Surname": customerType === 'Individual' ? lastName : '',
+      "Name": customerType === 'Corporate' ? fullName : '',
+      "Registration No": customerType === 'Corporate' ? registrationNo : '',
+      "Date Of Incorporation": customerType === 'Corporate' ? dateOfIncorporation : '',
+      "Tax Identification No": customerType === 'Corporate' ? tin : '',
+      "Sector": customerType === 'Corporate' ? sector : '',
+      "Contact Person": customerType === 'Corporate' ? contactPerson : '',
+      "Office Address": customerType === 'Corporate' ? officeAddress : '',
       "Email": email,
       "Mobile Phone": `${countryCode}${formattedMobile}`,
       ...additionalData,
@@ -130,8 +150,15 @@ const AddContact = () => {
   const clearForm = () => {
     setFirstName('');
     setLastName('');
+    setFullName('');
     setEmail('');
     setMobilePhone('');
+    setRegistrationNo('');
+    setDateOfIncorporation('');
+    setTin('');
+    setSector('');
+    setContactPerson('');
+    setOfficeAddress('');
     setCustomAttributes([]);
   };
 
@@ -139,8 +166,8 @@ const AddContact = () => {
     const headers = [
       'Customer Type', 'Customer External ID', 'Name', 'Registration No', 'Date Of Incorporation',
       'Sector', 'Country Of Incorporation', 'State Of Incorporation', 'Contact Person', 'Address',
-      'Phone No', 'Office No', 'Tax Identification No', 'Email Address', 'Account Officer',
-      'Title', 'Surname', 'First Name', 'Other Name', 'Date of Birth', 'Gender', 'Nationality',
+      'Phone', 'Office No', 'Tax Identification No', 'Email', 'Account Officer',
+      'Title', 'Last Name', 'First Name', 'Other Name', 'Date of Birth', 'Gender', 'Nationality',
       'State of Origin', 'Residential State', 'Residential Town', 'BVN', 'NIN', 'Education Level',
       'Occupation', 'Office Address', 'Next of Kin', 'Next of Kin Address', 'Next of Kin Phone',
       'ID Card Type', 'ID Card No', 'ID Issue Date', 'ID Expiry Date', 'Is PEP', 'PEP Details', 'Created On'
@@ -211,69 +238,154 @@ const AddContact = () => {
             <div className="lg:col-span-2 space-y-6">
               {activeTab === 'manual' ? (
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-2xl p-8 shadow-sm dark:shadow-2xl transition-all">
-                  <h3 className="text-slate-900 dark:text-white text-lg font-black uppercase tracking-widest mb-8">Contact Details</h3>
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
+                    <h3 className="text-slate-900 dark:text-white text-lg font-black uppercase tracking-widest">Contact Details</h3>
+                    <div className="flex gap-2 p-1 bg-slate-100 dark:bg-background-dark rounded-xl w-fit">
+                        <button
+                            type="button"
+                            onClick={() => setCustomerType('Individual')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${customerType === 'Individual' ? 'bg-white dark:bg-surface-dark text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Individual
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCustomerType('Corporate')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${customerType === 'Corporate' ? 'bg-white dark:bg-surface-dark text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Corporate
+                        </button>
+                    </div>
+                  </div>
+
                   <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSaveContact(); }}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">First Name</label>
-                        <input
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
-                          placeholder="e.g. Jane"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Last Name</label>
-                        <input
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
-                          placeholder="e.g. Doe"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Email Address</label>
-                      <input
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
-                        placeholder="jane.doe@company.com"
-                        type="email"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Phone Number</label>
-                        <div className="flex gap-3">
-                          <div className="relative w-32 shrink-0">
-                            <select
-                              value={countryCode}
-                              onChange={(e) => setCountryCode(e.target.value)}
-                              className="w-full appearance-none bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl pl-4 pr-10 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-medium"
-                            >
-                              <option value="+234">🇳🇬 +234</option>
-                              <option value="+1">🇺🇸 +1</option>
-                              <option value="+44">🇬🇧 +44</option>
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
-                          </div>
+                    {customerType === 'Individual' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.2s_ease-out]">
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-500 uppercase tracking-widest">First Name</label>
                           <input
-                            value={mobilePhone}
-                            onChange={(e) => setMobilePhone(e.target.value)}
-                            className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
-                            placeholder="800 000 0000"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                            placeholder="e.g. Jane"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Surname</label>
+                          <input
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                            placeholder="e.g. Doe"
                             required
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] font-bold text-slate-500 dark:text-text-secondary uppercase tracking-widest opacity-60">Please ensure format follows E.164 standards for SMS delivery.</p>
+                    ) : (
+                      <div className="animate-[fadeIn_0.2s_ease-out] space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Company Name</label>
+                                <input
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                placeholder="Legal Entity Name"
+                                required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Registration No</label>
+                                <input
+                                value={registrationNo}
+                                onChange={(e) => setRegistrationNo(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                placeholder="RC Number"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Inc. Date</label>
+                                <input
+                                type="date"
+                                value={dateOfIncorporation}
+                                onChange={(e) => setDateOfIncorporation(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">TIN</label>
+                                <input
+                                value={tin}
+                                onChange={(e) => setTin(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Sector</label>
+                                <input
+                                value={sector}
+                                onChange={(e) => setSector(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Contact Person</label>
+                                <input
+                                value={contactPerson}
+                                onChange={(e) => setContactPerson(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic text-primary"
+                                />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Office Address</label>
+                                <input
+                                value={officeAddress}
+                                onChange={(e) => setOfficeAddress(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                                />
+                            </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Email Address</label>
+                        <input
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                            placeholder="jane.doe@company.com"
+                            type="email"
+                            required
+                        />
+                        </div>
+
+                        <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Phone Number</label>
+                        <div className="flex gap-3">
+                            <div className="relative w-32 shrink-0">
+                            <select
+                                value={countryCode}
+                                onChange={(e) => setCountryCode(e.target.value)}
+                                className="w-full appearance-none bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl pl-4 pr-10 py-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all font-medium"
+                            >
+                                <option value="+234">🇳🇬 +234</option>
+                                <option value="+1">🇺🇸 +1</option>
+                                <option value="+44">🇬🇧 +44</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                            </div>
+                            <input
+                            value={mobilePhone}
+                            onChange={(e) => setMobilePhone(e.target.value)}
+                            className="flex-1 bg-slate-100/50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary outline-none transition-all font-bold italic"
+                            placeholder="800 000 0000"
+                            required
+                            />
+                        </div>
+                        </div>
                     </div>
 
                     {/* Smart Additional Attributes */}
@@ -343,6 +455,7 @@ const AddContact = () => {
                               </div>
 
                               <button
+                                type="button"
                                 onClick={() => removeAttribute(attr.id)}
                                 className="text-slate-400 hover:text-red-500 p-2 transition-colors shrink-0"
                                 title="Remove Attribute"
@@ -377,7 +490,7 @@ const AddContact = () => {
                       <button
                         type="submit"
                         disabled={isSaving}
-                        className="px-8 py-2.5 rounded-xl bg-primary text-white font-black text-sm hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-8 py-2.5 rounded-xl bg-primary text-white font-black text-sm hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-allowed"
                       >
                         {isSaving ? (
                           <>

@@ -35,7 +35,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
     const [uploadSummary, setUploadSummary] = useState<{ matched: number; skipped: number } | null>(null);
 
     // --- Dynamic State ---
-    const [rules, setRules] = useState<{ field: string; operator: string; value: string; logicGate: 'AND' | 'OR' }[]>([
+    const [rules, setRules] = useState<{ field: string; customField?: string; operator: string; value: string; logicGate: 'AND' | 'OR' }[]>([
         { field: 'customerType', operator: 'equals', value: '', logicGate: 'AND' }
     ]);
 
@@ -274,10 +274,18 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                     payload.contextualData = contextualData;
                 }
             } else {
-                // Remove empty rules
-                payload.rules = rules.filter(r => r.field && r.value.trim() !== '');
+                // Remove empty rules and handle custom field naming
+                payload.rules = rules
+                    .filter(r => (r.field && r.field !== 'custom' && r.value.trim() !== '') || (r.field === 'custom' && r.customField?.trim() && r.value.trim() !== ''))
+                    .map(r => ({
+                        field: r.field === 'custom' ? r.customField!.trim() : r.field,
+                        operator: r.operator,
+                        value: r.value,
+                        logicGate: r.logicGate
+                    }));
+
                 if (payload.rules.length === 0) {
-                    setError('At least one valid rule is required for dynamic groups.');
+                    setError('At least one valid rule with a non-empty value is required for dynamic groups.');
                     setIsSaving(false);
                     return;
                 }
@@ -566,28 +574,76 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                                                 </div>
                                             )}
                                             <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 p-4 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-xl shadow-inner group transition-all">
-                                                <select
-                                                    value={rule.field}
-                                                    onChange={(e) => updateRule(idx, 'field', e.target.value)}
-                                                    className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-lg text-xs font-black uppercase text-slate-900 dark:text-white cursor-pointer outline-none focus:border-primary shrink-0"
-                                                >
-                                                    <option value="customerType">Contact Type</option>
-                                                    <option value="fullName">Full Name</option>
-                                                    <option value="email">Email</option>
-                                                    <option value="mobilePhone">Phone Number</option>
-                                                    <option value="dob">Date of Birth</option>
-                                                    <option value="gender">Gender</option>
-                                                    <option value="nationality">Nationality</option>
-                                                    <option value="stateOfOrigin">State of Origin</option>
-                                                    <option value="residentialState">Residential State</option>
-                                                    <option value="residentialTown">Residential Town</option>
-                                                    <option value="occupation">Occupation</option>
-                                                    <option value="sector">Sector</option>
-                                                    <option value="officeAddress">Office Address</option>
-                                                    <option value="isPep">Is PEP</option>
-                                                    <option value="idIssueDate">ID Issue Date</option>
-                                                    <option value="idExpiryDate">ID Expiry Date</option>
-                                                </select>
+                                                <div className="flex flex-col gap-2 flex-1 min-w-[150px]">
+                                                    <select
+                                                        value={rule.field}
+                                                        onChange={(e) => updateRule(idx, 'field', e.target.value)}
+                                                        className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 py-2.5 px-3 rounded-xl text-xs font-black uppercase text-slate-900 dark:text-white cursor-pointer outline-none focus:border-primary shadow-sm"
+                                                    >
+                                                        <optgroup label="Main Identifiers">
+                                                            <option value="customerType">Contact Type</option>
+                                                            <option value="fullName">Full Name</option>
+                                                            <option value="firstName">First Name</option>
+                                                            <option value="surname">Surname</option>
+                                                            <option value="email">Email</option>
+                                                            <option value="mobilePhone">Phone Number</option>
+                                                            <option value="customerExternalId">External ID</option>
+                                                        </optgroup>
+                                                        <optgroup label="Personal Details">
+                                                            <option value="title">Title</option>
+                                                            <option value="dob">Date of Birth</option>
+                                                            <option value="gender">Gender</option>
+                                                            <option value="nationality">Nationality</option>
+                                                            <option value="stateOfOrigin">State of Origin</option>
+                                                            <option value="occupation">Occupation</option>
+                                                            <option value="sector">Sector</option>
+                                                            <option value="educationLevel">Education Level</option>
+                                                            <option value="isPep">Is PEP</option>
+                                                            <option value="pepDetails">PEP Details</option>
+                                                        </optgroup>
+                                                        <optgroup label="Location Info">
+                                                            <option value="residentialState">Residential State</option>
+                                                            <option value="residentialTown">Town</option>
+                                                            <option value="address">Full Address</option>
+                                                        </optgroup>
+                                                        <optgroup label="Identifiers & IDs">
+                                                            <option value="bvn">BVN</option>
+                                                            <option value="nin">NIN</option>
+                                                            <option value="tin">TIN</option>
+                                                            <option value="idCardType">ID Card Type</option>
+                                                            <option value="idCardNo">ID Card No</option>
+                                                            <option value="idIssueDate">ID Issue Date</option>
+                                                            <option value="idExpiryDate">ID Expiry Date</option>
+                                                        </optgroup>
+                                                        <optgroup label="Next of Kin">
+                                                            <option value="nextOfKin">Name</option>
+                                                            <option value="nextOfKinPhone">Phone</option>
+                                                            <option value="nextOfKinAddress">Address</option>
+                                                        </optgroup>
+                                                        <optgroup label="Corporate Metadata">
+                                                            <option value="office">Office Name</option>
+                                                            <option value="officeAddress">Office Address</option>
+                                                            <option value="officePhone">Office Phone</option>
+                                                            <option value="registrationNo">Reg. Number</option>
+                                                            <option value="dateOfIncorporation">Inc. Date</option>
+                                                            <option value="countryOfIncorporation">Inc. Country</option>
+                                                            <option value="stateOfIncorporation">Inc. State</option>
+                                                            <option value="contactPerson">Contact Person</option>
+                                                            <option value="accountOfficer">Account Officer</option>
+                                                        </optgroup>
+                                                        <option value="custom">✨ Other / Custom Attribute</option>
+                                                    </select>
+                                                    
+                                                    {rule.field === 'custom' && (
+                                                        <input
+                                                            value={rule.customField || ''}
+                                                            onChange={(e) => updateRule(idx, 'customField', e.target.value)}
+                                                            className="w-full bg-orange-50/50 dark:bg-orange-500/5 border border-orange-200 dark:border-orange-900/50 py-2 px-3 rounded-lg text-xs font-bold text-orange-600 dark:text-orange-400 outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-orange-300 animate-[slideDown_0.2s_ease-out]"
+                                                            placeholder="Attribute Key (e.g. Points)"
+                                                            autoFocus
+                                                        />
+                                                    )}
+                                                </div>
     
                                                 <select
                                                     value={rule.operator}

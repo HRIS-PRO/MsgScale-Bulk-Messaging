@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useRole } from '../RoleContext';
+import { formatDOB } from '../utils';
 
 const Dashboard = () => {
-  const { user, selectedWorkspace, token } = useRole();
+  const { user, selectedWorkspace, token, role } = useRole();
   const userName = user?.employee
     ? `${user.employee.firstName} ${user.employee.surname}`
     : (user?.email.split('@')[0] || 'User');
@@ -189,7 +190,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         <div className="lg:col-span-2 p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="material-symbols-outlined text-8xl text-primary font-black">celebration</span>
@@ -211,7 +212,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <>
-                  {[...anniversaries.inThreeDays, ...anniversaries.upcoming].slice(0, 4).map((ann, i) => (
+                  {[...anniversaries.inThreeDays, ...anniversaries.upcoming].slice(0, 6).map((ann, i) => (
                     <div 
                       key={i} 
                       onClick={() => navigate('/campaigns/new')}
@@ -226,7 +227,7 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <p className="text-sm font-black text-slate-900 dark:text-white truncate italic">{ann.name}</p>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{ann.type} • {ann.date}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{ann.type} • {formatDOB(ann.date, role)}</p>
                     </div>
                   ))}
                 </>
@@ -235,7 +236,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-1 p-8 rounded-2xl bg-slate-900 dark:bg-primary/10 border border-slate-800 dark:border-primary/20 shadow-xl overflow-hidden relative group">
+        {/* <div className="lg:col-span-1 p-8 rounded-2xl bg-slate-900 dark:bg-primary/10 border border-slate-800 dark:border-primary/20 shadow-xl overflow-hidden relative group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent"></div>
           <div className="relative z-10 flex flex-col h-full">
             <h3 className="text-base font-black text-white uppercase tracking-widest mb-4 italic">Action required</h3>
@@ -249,12 +250,9 @@ const Dashboard = () => {
               >
                 Create Campaign <span className="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
               </button>
-              <button className="w-full py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors">
-                Dismiss Alerts
-              </button>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

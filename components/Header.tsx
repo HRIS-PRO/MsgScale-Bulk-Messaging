@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from '../RoleContext';
+import { formatDOB } from '../utils';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -24,7 +24,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     }
   }, [selectedWorkspace?.id, token]);
 
-  // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
@@ -171,7 +170,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                           <span className="text-[10px] font-black text-amber-500 uppercase shrink-0">3 Days Left</span>
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {ann.type} on <span className="font-bold text-slate-700 dark:text-slate-300">{ann.date}</span>. Prepare a marketing message!
+                          {ann.type} on <span className="font-bold text-slate-700 dark:text-slate-300">{formatDOB(ann.date, role)}</span>. Prepare a marketing message!
                         </p>
                       </div>
                     </div>
@@ -194,7 +193,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                           <span className="text-[10px] font-bold text-slate-400 shrink-0">{ann.daysUntil} days</span>
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {ann.type} on {ann.date}
+                          {ann.type} on {formatDOB(ann.date, role)}
                         </p>
                       </div>
                     </div>

@@ -13,6 +13,14 @@ interface Contact {
     dob?: string;
     gender?: string;
     residentialState?: string;
+    registrationNo?: string;
+    dateOfIncorporation?: string;
+    sector?: string;
+    contactPerson?: string;
+    officeAddress?: string;
+    tin?: string;
+    accountOfficer?: string;
+    address?: string;
 }
 
 interface EditCustomerModalProps {
@@ -54,6 +62,15 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
             
             if (safeData.dob) {
                 safeData.dob = formatForDateInput(safeData.dob);
+            }
+            if (safeData.dateOfIncorporation) {
+                safeData.dateOfIncorporation = formatForDateInput(safeData.dateOfIncorporation);
+            }
+            if (safeData.idIssueDate) {
+                safeData.idIssueDate = formatForDateInput(safeData.idIssueDate);
+            }
+            if (safeData.idExpiryDate) {
+                safeData.idExpiryDate = formatForDateInput(safeData.idExpiryDate);
             }
             
             setFormData(safeData);
@@ -101,10 +118,12 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
                 <div className="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex items-center justify-between bg-slate-50 dark:bg-[#111722]/50 rounded-t-2xl">
                     <div>
                         <h3 className="text-xl font-black text-slate-900 dark:text-white italic tracking-tight uppercase tracking-widest text-sm flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-xl">edit_square</span>
-                            Edit Customer
+                            <span className="material-symbols-outlined text-primary text-xl">{formData.customerType === 'Corporate' ? 'business' : 'edit_square'}</span>
+                            Edit {formData.customerType === 'Corporate' ? 'Corporate' : 'Customer'}
                         </h3>
-                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1">Modify contact details for {customer.firstName} {customer.surname}</p>
+                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                            Modify details for {formData.customerType === 'Corporate' ? formData.fullName : `${formData.firstName} ${formData.surname}`}
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
@@ -122,80 +141,187 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
                         </div>
                     )}
 
-                    <form id="edit-customer-form" onSubmit={handleSubmit} className="space-y-6">
-                        {/* Personal Info Group */}
-                        <div>
-                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-border-dark pb-2 mb-4 italic">Personal Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Title</label>
-                                    <input
-                                        name="title"
-                                        value={formData.title || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                        placeholder="e.g. Mr, Mrs, Dr"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Gender</label>
-                                    <select
-                                        name="gender"
-                                        value={formData.gender || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all appearance-none"
-                                    >
-                                        <option value="">Select Gender</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">First Name</label>
-                                    <input
-                                        name="firstName"
-                                        value={formData.firstName || ''}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Surname</label>
-                                    <input
-                                        name="surname"
-                                        value={formData.surname || ''}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Other Name</label>
-                                    <input
-                                        name="otherName"
-                                        value={formData.otherName || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">DOB</label>
-                                    <input
-                                        name="dob"
-                                        type="date"
-                                        value={formData.dob || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
-                            </div>
+                    <form id="edit-customer-form" onSubmit={handleSubmit} className="space-y-8">
+                        {/* Type Selector */}
+                        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-background-dark rounded-xl w-fit">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, customerType: 'Individual' })}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${formData.customerType !== 'Corporate' ? 'bg-white dark:bg-surface-dark text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Individual
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, customerType: 'Corporate' })}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${formData.customerType === 'Corporate' ? 'bg-white dark:bg-surface-dark text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Corporate
+                            </button>
                         </div>
 
-                        {/* Contact Group */}
+                        {formData.customerType === 'Corporate' ? (
+                            <div className="animate-[fadeIn_0.2s_ease-out] space-y-6">
+                                <div>
+                                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-border-dark pb-2 mb-4 italic">Corporate Information</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Company Name <span className="text-red-500">*</span></label>
+                                            <input
+                                                name="fullName"
+                                                value={formData.fullName || ''}
+                                                onChange={handleChange}
+                                                required
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all font-bold italic"
+                                                placeholder="Legal Company Name"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Registration No</label>
+                                            <input
+                                                name="registrationNo"
+                                                value={formData.registrationNo || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                                placeholder="RC Number"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Inc. Date</label>
+                                            <input
+                                                name="dateOfIncorporation"
+                                                type="date"
+                                                value={formData.dateOfIncorporation || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sector</label>
+                                            <input
+                                                name="sector"
+                                                value={formData.sector || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                                placeholder="e.g. Finance, Tech"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">TIN</label>
+                                            <input
+                                                name="tin"
+                                                value={formData.tin || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contact Person</label>
+                                            <input
+                                                name="contactPerson"
+                                                value={formData.contactPerson || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all text-primary font-bold"
+                                                placeholder="Main point of contact"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Account Officer</label>
+                                            <input
+                                                name="accountOfficer"
+                                                value={formData.accountOfficer || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Office Address</label>
+                                            <input
+                                                name="officeAddress"
+                                                value={formData.officeAddress || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="animate-[fadeIn_0.2s_ease-out] space-y-6">
+                                <div>
+                                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-border-dark pb-2 mb-4 italic">Personal Information</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Title</label>
+                                            <input
+                                                name="title"
+                                                value={formData.title || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                                placeholder="e.g. Mr, Mrs, Dr"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Gender</label>
+                                            <select
+                                                name="gender"
+                                                value={formData.gender || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all appearance-none"
+                                            >
+                                                <option value="">Select Gender</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">First Name</label>
+                                            <input
+                                                name="firstName"
+                                                value={formData.firstName || ''}
+                                                onChange={handleChange}
+                                                required
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Surname</label>
+                                            <input
+                                                name="surname"
+                                                value={formData.surname || ''}
+                                                onChange={handleChange}
+                                                required
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Other Name</label>
+                                            <input
+                                                name="otherName"
+                                                value={formData.otherName || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">DOB</label>
+                                            <input
+                                                name="dob"
+                                                type="date"
+                                                value={formData.dob || ''}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Common Contact Group */}
                         <div>
-                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-border-dark pb-2 mb-4 italic">Contact Details</h4>
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-border-dark pb-2 mb-4 italic">Primary Contact Information</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email <span className="text-red-500">*</span></label>
@@ -218,15 +344,17 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ isOpen, onClose, 
                                         className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
                                     />
                                 </div>
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Residential State</label>
-                                    <input
-                                        name="residentialState"
-                                        value={formData.residentialState || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                    />
-                                </div>
+                                {formData.customerType !== 'Corporate' && (
+                                    <div className="space-y-1.5 md:col-span-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Residential Address</label>
+                                        <input
+                                            name="address"
+                                            value={formData.address || ''}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
