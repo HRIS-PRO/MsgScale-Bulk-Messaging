@@ -24,7 +24,7 @@ const EXPECTED_FIELDS = [
     { key: 'residentialState', label: 'Residential State' },
     { key: 'residentialTown', label: 'Residential Town' },
     { key: 'address', label: 'Address' },
-    { key: 'mobilePhone', label: 'Phone', aliases: ['phoneno', 'phonenumber', 'mobile', 'cell', 'phone'] },
+    { key: 'mobilePhone', label: 'Phone', aliases: ['phoneno', 'phonenumber', 'mobile', 'cell', 'phone', 'mobilephone'] },
     { key: 'bvn', label: 'BVN' },
     { key: 'nin', label: 'NIN' },
     { key: 'email', label: 'Email', aliases: ['emailaddress', 'useremail', 'email'] },
