@@ -43,6 +43,7 @@ const CampaignWizard = () => {
     matched: number;
     unmatched: number;
     unmatchedIdentifiers: string[];
+    sampleContacts?: any[];
   } | null>(null);
   const [showUnmatched, setShowUnmatched] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
@@ -103,26 +104,26 @@ const CampaignWizard = () => {
         const isEmailIdentifier = ['email', 'emailaddress', 'useremail'].includes(cleanIdKey);
 
         if (isEmailIdentifier) {
-            const validEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const invalidEmails: string[] = [];
-            
-            rows.forEach((r, idx) => {
-                const val = r[identifierKey];
-                if (val !== undefined && String(val).trim() !== '' && String(val) !== 'undefined') {
-                    if (!validEmailRegex.test(String(val).trim())) {
-                        invalidEmails.push(`Row ${idx + 2}: ${val}`);
-                    }
-                }
-            });
+          const validEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          const invalidEmails: string[] = [];
 
-            if (invalidEmails.length > 0) {
-                setUploadError({
-                    title: "Invalid Email Format",
-                    message: "When using email as the identifier, all entries must be valid email addresses (e.g. user@domain.com).",
-                    details: invalidEmails.slice(0, 5).concat(invalidEmails.length > 5 ? [`...and ${invalidEmails.length - 5} more`] : [])
-                });
-                return;
+          rows.forEach((r, idx) => {
+            const val = r[identifierKey];
+            if (val !== undefined && String(val).trim() !== '' && String(val) !== 'undefined') {
+              if (!validEmailRegex.test(String(val).trim())) {
+                invalidEmails.push(`Row ${idx + 2}: ${val}`);
+              }
             }
+          });
+
+          if (invalidEmails.length > 0) {
+            setUploadError({
+              title: "Invalid Email Format",
+              message: "When using email as the identifier, all entries must be valid email addresses (e.g. user@domain.com).",
+              details: invalidEmails.slice(0, 5).concat(invalidEmails.length > 5 ? [`...and ${invalidEmails.length - 5} more`] : [])
+            });
+            return;
+          }
         }
 
         // Map identifier key to 'identifier' for the backend
@@ -134,7 +135,7 @@ const CampaignWizard = () => {
           });
 
         const customVars = allHeaders.filter(h => h !== identifierKey);
-        
+
         if (customVars.length === 0) {
           setUploadError({
             title: "No Variable Columns Found",
@@ -221,13 +222,13 @@ const CampaignWizard = () => {
   };
 
 
-  // Re-trigger match preview when segments change if data is already uploaded
+  // Re-trigger match preview when segments change to fetch sample contacts for preview
   useEffect(() => {
     const pendingData = (window as any)._pendingExternalData;
-    if (pendingData && selectedSegments.length > 0) {
-      triggerMatchPreview(selectedSegments, pendingData);
-    } else if (pendingData && selectedSegments.length === 0) {
-      setMatchStatus({ matched: 0, unmatched: pendingData.length, unmatchedIdentifiers: pendingData.map((r: any) => r.identifier) });
+    if (selectedSegments.length > 0) {
+      triggerMatchPreview(selectedSegments, pendingData || []);
+    } else {
+      setMatchStatus(null);
     }
   }, [selectedSegments]);
 
@@ -267,6 +268,7 @@ const CampaignWizard = () => {
   // UI State
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(true);
+  const [previewUserIndex, setPreviewUserIndex] = useState(0);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -510,6 +512,34 @@ const CampaignWizard = () => {
 
 
   // We delegate group creation to CreateGroupModal now
+
+  const getPreviewContent = (content: string, subjectStr: string = '') => {
+    let html = content;
+    let subj = subjectStr;
+    const pendingData = (window as any)._pendingExternalData;
+
+    const samples = matchStatus?.sampleContacts || [];
+    
+    if (samples.length > 0) {
+      const userIdx = previewUserIndex % samples.length;
+      const contact = samples[userIdx] || {};
+
+      // Merge all available fields for replacement
+      const allVars = { ...contact };
+      
+      Object.entries(allVars).forEach(([key, val]) => {
+        if (key === 'customFields' && typeof val === 'object') return; // Skip the object itself
+        const displayVal = val !== undefined && val !== null ? String(val) : '';
+        const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'gi');
+        html = html.replace(regex, `<span class="bg-primary/20 text-primary px-1.5 py-0.5 rounded-md font-bold">${displayVal}</span>`);
+        subj = subj.replace(regex, displayVal);
+      });
+    }
+
+    return { renderedHtml: html, renderedSubject: subj };
+  };
+
+  const { renderedHtml, renderedSubject } = getPreviewContent(htmlContent, subject);
 
   return (
     <div className="flex h-full bg-slate-50 dark:bg-background-dark overflow-hidden theme-transition relative">
@@ -763,97 +793,7 @@ const CampaignWizard = () => {
 
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-2xl p-8 shadow-sm space-y-8">
                   {/* External Data Upload & Match Preview */}
-                  <div className="space-y-4">
-                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
-                      <div className="flex gap-4 items-center">
-                        <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                          <span className="material-symbols-outlined text-2xl">database</span>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tight italic">Personalization Variables (CSV)</h4>
-                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
-                            {externalVariables.length > 0
-                              ? `Active: ${externalVariables.join(', ')}`
-                              : 'Upload CSV with Phone/Email + Custom Data'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept=".csv,.xlsx,.xls"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          onChange={handleExternalDataUpload}
-                        />
-                        <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sm">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
-                          {isUploadingExternal ? 'Processing...' : externalVariables.length > 0 ? 'Replace File' : 'Upload CSV'}
-                        </button>
-                      </div>
-                    </div>
 
-                    {(isMatching || matchStatus) && (
-                      <div className="bg-white dark:bg-[#1e293b]/30 border border-slate-200 dark:border-border-dark rounded-2xl overflow-hidden animate-[fadeIn_0.3s_ease-out]">
-                        <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-border-dark bg-slate-50/30 dark:bg-black/10">
-                          {isMatching ? (
-                            <div className="flex items-center gap-3 py-1">
-                              <span className="material-symbols-outlined text-primary animate-spin text-lg">sync</span>
-                              <span className="text-xs font-black uppercase tracking-widest text-primary animate-pulse">Running Match Analysis...</span>
-                            </div>
-                          ) : matchStatus ? (
-                            <>
-                              <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Matching Status</span>
-
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-500 rounded-lg font-black text-xs">
-                                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                  {matchStatus.matched ?? 0} Matched
-                                </div>
-
-                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-xs ${matchStatus.unmatched > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-500/10 text-slate-400'}`}>
-                                  <span className="material-symbols-outlined text-[16px]">error</span>
-                                  {matchStatus.unmatched ?? 0} Unmatched
-                                </div>
-                              </div>
-                              {matchStatus.unmatched > 0 && (
-                                <button
-                                  onClick={() => setShowUnmatched(!showUnmatched)}
-                                  className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline bg-primary/5 px-2 py-1 rounded-md transition-colors"
-                                >
-                                  {showUnmatched ? 'Hide Unmatched' : 'View Unmatched'}
-                                  <span className="material-symbols-outlined text-sm">{showUnmatched ? 'expand_less' : 'expand_more'}</span>
-                                </button>
-                              )}
-                            </>
-                          ) : null}
-                        </div>
-
-                        {!isMatching && matchStatus && showUnmatched && (matchStatus.unmatchedIdentifiers?.length ?? 0) > 0 && (
-                          <div className="p-4 bg-slate-50/50 dark:bg-black/20 max-h-32 overflow-y-auto no-scrollbar">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Identifiers not found in selected groups:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {matchStatus.unmatchedIdentifiers.map((id, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-white dark:bg-[#111722] border border-slate-200 dark:border-border-dark rounded text-[9px] font-mono font-bold text-slate-600 dark:text-slate-400">
-                                  {id}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {!isMatching && matchStatus && matchStatus.matched === 0 && selectedSegments.length > 0 && (
-                          <div className="p-4 bg-amber-500/5 flex items-start gap-3">
-                            <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
-                            <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                              <span className="font-bold uppercase tracking-tight block mb-0.5">Zero Matches Found</span>
-                              The identifiers in your CSV don't match any contacts in the selected groups. Please double-check your "Phone" or "Email" columns.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
 
 
 
@@ -978,35 +918,98 @@ const CampaignWizard = () => {
                       )}
                     </div>
                   </div>
-                  
-                   <div className="space-y-4">
-                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6 transition-all hover:bg-primary/10">
-                      <div className="flex gap-4 items-center">
-                        <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+
+                  <div className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-center justify-between gap-6">
+                        <div className="flex gap-4 items-center">
+                          <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                             <span className="material-symbols-outlined text-2xl">database</span>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-black dark:text-white uppercase tracking-tight italic">Contextual Variables</h4>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-black dark:text-white uppercase tracking-tight italic">Personalization Variables (CSV)</h4>
                             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
-                              {externalVariables.length > 0 
-                                ? `Ready: ${externalVariables.map(v => `{{${v}}}`).join(', ')}` 
-                                : 'Upload CSV to use custom data for each contact'
+                              {externalVariables.length > 0
+                                ? `Active: ${externalVariables.join(', ')}`
+                                : 'Upload CSV with Phone/Email + Custom Data'
                               }
                             </p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            onChange={handleExternalDataUpload}
+                          />
+                          <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sm">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
+                            {isUploadingExternal ? 'Processing...' : externalVariables.length > 0 ? 'Replace File' : 'Upload CSV'}
+                          </button>
                         </div>
                       </div>
-                      <div className="relative">
-                        <input 
-                          type="file" 
-                          accept=".csv,.xlsx,.xls" 
-                          className="absolute inset-0 opacity-0 cursor-pointer" 
-                          onChange={handleExternalDataUpload}
-                        />
-                        <button className="px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 group">
-                            <span className="material-symbols-outlined text-sm group-hover:rotate-12 transition-transform">{isUploadingExternal ? 'sync' : 'upload_file'}</span>
-                            {isUploadingExternal ? 'Processing...' : externalVariables.length > 0 ? 'Replace Data' : 'Upload CSV Data'}
-                        </button>
-                      </div>
+
+                      {(isMatching || matchStatus) && (
+                        <div className="bg-white dark:bg-[#1e293b]/30 border border-slate-200 dark:border-border-dark rounded-2xl overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+                          <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-border-dark bg-slate-50/30 dark:bg-black/10">
+                            {isMatching ? (
+                              <div className="flex items-center gap-3 py-1">
+                                <span className="material-symbols-outlined text-primary animate-spin text-lg">sync</span>
+                                <span className="text-xs font-black uppercase tracking-widest text-primary animate-pulse">Running Match Analysis...</span>
+                              </div>
+                            ) : matchStatus ? (
+                              <>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Matching Status</span>
+
+                                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-500 rounded-lg font-black text-xs">
+                                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                    {matchStatus.matched ?? 0} Matched
+                                  </div>
+
+                                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-xs ${matchStatus.unmatched > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-500/10 text-slate-400'}`}>
+                                    <span className="material-symbols-outlined text-[16px]">error</span>
+                                    {matchStatus.unmatched ?? 0} Unmatched
+                                  </div>
+                                </div>
+                                {matchStatus.unmatched > 0 && (
+                                  <button
+                                    onClick={() => setShowUnmatched(!showUnmatched)}
+                                    className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline bg-primary/5 px-2 py-1 rounded-md transition-colors"
+                                  >
+                                    {showUnmatched ? 'Hide Unmatched' : 'View Unmatched'}
+                                    <span className="material-symbols-outlined text-sm">{showUnmatched ? 'expand_less' : 'expand_more'}</span>
+                                  </button>
+                                )}
+                              </>
+                            ) : null}
+                          </div>
+
+                          {!isMatching && matchStatus && showUnmatched && (matchStatus.unmatchedIdentifiers?.length ?? 0) > 0 && (
+                            <div className="p-4 bg-slate-50/50 dark:bg-black/20 max-h-32 overflow-y-auto no-scrollbar">
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Identifiers not found in selected groups:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {matchStatus.unmatchedIdentifiers.map((id, idx) => (
+                                  <span key={idx} className="px-2 py-1 bg-white dark:bg-[#111722] border border-slate-200 dark:border-border-dark rounded text-[9px] font-mono font-bold text-slate-600 dark:text-slate-400">
+                                    {id}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {!isMatching && matchStatus && matchStatus.matched === 0 && selectedSegments.length > 0 && (
+                            <div className="p-4 bg-amber-500/5 flex items-start gap-3">
+                              <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
+                              <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                                <span className="font-bold uppercase tracking-tight block mb-0.5">Zero Matches Found</span>
+                                The identifiers in your CSV don't match any contacts in the selected groups. Please double-check your "Phone" or "Email" columns.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {uploadError && (
@@ -1017,8 +1020,8 @@ const CampaignWizard = () => {
                           </div>
                           <div className="space-y-3">
                             <div>
-                               <h4 className="text-sm font-black text-orange-900 dark:text-orange-200 uppercase tracking-tight">{uploadError.title}</h4>
-                               <p className="text-xs text-orange-800/80 dark:text-orange-300/80 font-bold leading-relaxed">{uploadError.message}</p>
+                              <h4 className="text-sm font-black text-orange-900 dark:text-orange-200 uppercase tracking-tight">{uploadError.title}</h4>
+                              <p className="text-xs text-orange-800/80 dark:text-orange-300/80 font-bold leading-relaxed">{uploadError.message}</p>
                             </div>
                             {uploadError.details && (
                               <div className="flex flex-wrap gap-2 pt-1">
@@ -1029,7 +1032,7 @@ const CampaignWizard = () => {
                                 ))}
                               </div>
                             )}
-                            <button 
+                            <button
                               onClick={() => setUploadError(null)}
                               className="text-[10px] font-black uppercase text-orange-600 dark:text-orange-400 underline underline-offset-4 hover:opacity-70 transition-opacity"
                             >
@@ -1039,7 +1042,7 @@ const CampaignWizard = () => {
                         </div>
                       </div>
                     )}
-                   </div>
+                  </div>
 
                   {/* Editor Area */}
                   <div className="h-[550px] flex flex-col">
@@ -1056,7 +1059,28 @@ const CampaignWizard = () => {
               {/* Preview Sidebar */}
               <div className="w-full lg:w-96 shrink-0 space-y-6">
                 <div className="flex items-center justify-between px-2">
-                  <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Live Preview</h3>
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Live Preview</h3>
+                    {matchStatus?.sampleContacts && matchStatus.sampleContacts.length > 1 && (
+                      <div className="flex items-center gap-2 bg-slate-100 dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-lg px-2 py-1">
+                        <button
+                          onClick={() => setPreviewUserIndex(Math.max(0, previewUserIndex - 1))}
+                          disabled={previewUserIndex === 0}
+                          className="material-symbols-outlined text-sm text-slate-400 hover:text-primary disabled:opacity-50 transition-colors"
+                        >
+                          chevron_left
+                        </button>
+                        <span className="text-[10px] font-black font-mono text-slate-500">Example {(previewUserIndex % matchStatus.sampleContacts.length) + 1}</span>
+                        <button
+                          onClick={() => setPreviewUserIndex(previewUserIndex + 1)}
+                          disabled={previewUserIndex >= matchStatus.sampleContacts.length - 1}
+                          className="material-symbols-outlined text-sm text-slate-400 hover:text-primary disabled:opacity-50 transition-colors"
+                        >
+                          chevron_right
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex bg-slate-100 dark:bg-surface-dark p-1 rounded-lg border border-slate-200 dark:border-border-dark">
                     <button
                       onClick={() => setPreviewDevice('mobile')}
@@ -1079,10 +1103,10 @@ const CampaignWizard = () => {
                       <>
                         <div className="bg-slate-50 dark:bg-surface-dark p-4 border-b border-slate-200 dark:border-border-dark space-y-1">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Subject</p>
-                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate italic">{subject}</p>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate italic">{renderedSubject}</p>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-[#0c111d]">
-                          <div className="prose prose-xs dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                          <div className="prose prose-xs dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
                         </div>
                       </>
                     ) : (
@@ -1098,7 +1122,7 @@ const CampaignWizard = () => {
 
                         <div className="bg-white dark:bg-surface-dark p-4 rounded-[1.5rem] rounded-tl-none shadow-xl shadow-slate-200/50 relative max-w-[95%] self-start border border-slate-100 dark:border-border-dark animate-[slideInUp_0.3s_ease-out]">
                           <p className="text-[12px] leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-medium">
-                            {htmlContent.replace(/<[^>]*>/g, '')}
+                            <span dangerouslySetInnerHTML={{ __html: renderedHtml.replace(/<p>/g, '').replace(/<\/p>/g, '<br/>').replace(/<br\s*\/?>/gi, '\n') }} className="font-sans" />
                           </p>
                         </div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-3 ml-2 italic">Delivered • Just Now</p>
