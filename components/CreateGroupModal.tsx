@@ -188,6 +188,32 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                     return;
                 }
 
+                const cleanIdKey = identifierKey.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                const isEmailIdentifier = ['email', 'emailaddress', 'useremail'].includes(cleanIdKey);
+
+                if (isEmailIdentifier) {
+                    const validEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const invalidEmails: string[] = [];
+                    
+                    rows.forEach((r, idx) => {
+                        const val = r[identifierKey];
+                        if (val !== undefined && String(val).trim() !== '' && String(val) !== 'undefined') {
+                            if (!validEmailRegex.test(String(val).trim())) {
+                                invalidEmails.push(`Row ${idx + 2}: ${val}`);
+                            }
+                        }
+                    });
+
+                    if (invalidEmails.length > 0) {
+                        setUploadError({
+                            title: "Invalid Email Format",
+                            message: "When using email as the identifier, all entries must be valid email addresses (e.g. user@domain.com).",
+                            details: invalidEmails.slice(0, 5).concat(invalidEmails.length > 5 ? [`...and ${invalidEmails.length - 5} more`] : [])
+                        });
+                        return;
+                    }
+                }
+
                 const processedRows = rows
                     .filter(r => r[identifierKey] !== undefined && String(r[identifierKey]).trim() !== '' && String(r[identifierKey]) !== 'undefined')
                     .map(r => {
