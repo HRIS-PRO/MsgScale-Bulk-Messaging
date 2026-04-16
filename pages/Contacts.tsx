@@ -59,11 +59,14 @@ const Contacts = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [activeGroupFilter, setActiveGroupFilter] = useState<string>('All');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Contact; direction: 'asc' | 'desc' } | null>(null);
 
   const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearchQuery)}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workspaces/customers?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearchQuery)}&type=${activeGroupFilter}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('msgscale_token')}`
         }
@@ -82,17 +85,14 @@ const Contacts = () => {
 
   React.useEffect(() => {
     fetchContacts();
-  }, [currentPage, debouncedSearchQuery]);
+  }, [currentPage, debouncedSearchQuery, activeGroupFilter]);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, activeGroupFilter]);
 
   const canEdit = role === 'Admin' || role === 'Manager' || role === 'Editor';
   const isAdmin = role === 'Admin';
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Contact; direction: 'asc' | 'desc' } | null>(null);
-  const [activeGroupFilter, setActiveGroupFilter] = useState<string>('All');
 
   const [isAddToGroupModalOpen, setIsAddToGroupModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -115,8 +115,7 @@ const Contacts = () => {
       ].filter(Boolean).map(s => (s as string).trim()).join(' ').toLowerCase().replace(/\s+/g, ' ');
 
       const matchesSearch = searchString.includes(searchLower);
-      const matchesGroup = activeGroupFilter === 'All' || c.customerType === activeGroupFilter;
-      return matchesSearch && matchesGroup;
+      return matchesSearch;
     });
 
     if (sortConfig) {
@@ -243,13 +242,13 @@ const Contacts = () => {
         </div>
 
         <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 scrollbar-hide text-[10px] font-black uppercase tracking-widest">
-          {['All', ...Array.from(new Set(contacts.map(c => c.customerType).filter(Boolean)))].map(group => (
+          {['All', 'Individual', 'Corporate'].map(group => (
             <button
               key={group}
-              onClick={() => setActiveGroupFilter(group as string)}
+              onClick={() => setActiveGroupFilter(group)}
               className={`px-4 py-2 rounded-xl border transition-all whitespace-nowrap ${activeGroupFilter === group ? 'bg-primary border-primary text-white shadow-md shadow-primary/20' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-border-dark text-slate-500 hover:border-primary'}`}
             >
-              {group as string}
+              {group}
             </button>
           ))}
         </div>
@@ -351,6 +350,37 @@ const Contacts = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination & Summary */}
+        <div className="p-6 flex flex-col md:flex-row items-center justify-between border-t border-slate-100 dark:border-border-dark bg-slate-50 dark:bg-[#111722]/30 gap-4">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
+            Showing <span className="text-slate-900 dark:text-white">{filteredAndSortedContacts.length > 0 ? startIndex : 0}</span> to <span className="text-slate-900 dark:text-white">{endIndex}</span> of <span className="text-slate-900 dark:text-white">{totalContacts}</span> Total Results
+          </div>
+          <div className="flex gap-2 items-center">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">chevron_left</span>
+            </button>
+            
+            <div className="flex items-center gap-1.5 px-4 font-black uppercase italic text-xs tracking-tighter">
+              <span className="text-slate-400">Page</span>
+              <span className="text-primary">{currentPage}</span>
+              <span className="text-slate-400">of</span>
+              <span className="text-slate-900 dark:text-white">{totalPages || 1}</span>
+            </div>
+
+            <button 
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-border-dark text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">chevron_right</span>
+            </button>
+          </div>
         </div>
       </div>
 

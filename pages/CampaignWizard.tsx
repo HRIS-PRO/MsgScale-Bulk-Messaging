@@ -82,7 +82,7 @@ const CampaignWizard = () => {
         // Identify headers (excluding the identifier)
         const allHeaders = Object.keys(rows[0]);
         const identifierKey = allHeaders.find(h => {
-          const clean = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const clean = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
           return [
             'identifier', 'externalid', 'customerid',
             'phone', 'mobile', 'cell', 'phoneno', 'mobilephone', 'phonenumber',
@@ -100,10 +100,12 @@ const CampaignWizard = () => {
         }
 
         // Map identifier key to 'identifier' for the backend
-        const processedRows = rows.map(r => {
-          const { [identifierKey]: id, ...rest } = r;
-          return { identifier: id, ...rest };
-        });
+        const processedRows = rows
+          .filter(r => r[identifierKey] !== undefined && String(r[identifierKey]).trim() !== '' && String(r[identifierKey]) !== 'undefined')
+          .map(r => {
+            const { [identifierKey]: id, ...rest } = r;
+            return { identifier: String(id), data: rest };
+          });
 
         const customVars = allHeaders.filter(h => h !== identifierKey);
         

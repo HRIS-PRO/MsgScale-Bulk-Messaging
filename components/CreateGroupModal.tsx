@@ -174,9 +174,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                 }
 
                 const allHeaders = Object.keys(rows[0]);
-                const identifierKey = allHeaders.find(h => 
-                    ['phone', 'mobile', 'email', 'identifier', 'mobilephone'].includes(h.toLowerCase())
-                );
+                const identifierKey = allHeaders.find(h => {
+                    const clean = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                    return ['phone', 'mobile', 'email', 'identifier', 'mobilephone', 'phonenumber', 'customerid'].includes(clean);
+                });
 
                 if (!identifierKey) {
                     setUploadError({
@@ -187,10 +188,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                     return;
                 }
 
-                const processedRows = rows.map(r => {
-                    const { [identifierKey]: id, ...rest } = r;
-                    return { identifier: String(id), data: rest };
-                });
+                const processedRows = rows
+                    .filter(r => r[identifierKey] !== undefined && String(r[identifierKey]).trim() !== '' && String(r[identifierKey]) !== 'undefined')
+                    .map(r => {
+                        const { [identifierKey]: id, ...rest } = r;
+                        return { identifier: String(id), data: rest };
+                    });
 
                 setContextualData(processedRows);
                 
