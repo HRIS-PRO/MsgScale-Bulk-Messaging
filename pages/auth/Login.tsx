@@ -14,7 +14,7 @@ const Login = () => {
       e.preventDefault();
       setError(null);
       try {
-         await login(email, password);
+         await login(email.toLowerCase(), password);
          navigate('/auth/workspaces');
       } catch (err: any) {
          setError(err.message || 'Invalid email or password');

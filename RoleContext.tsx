@@ -66,7 +66,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, app: 'MSGSCALE_BULK' }),
+        body: JSON.stringify({ email: email.toLowerCase(), password, app: 'MSGSCALE_BULK' }),
       });
 
       const data = await response.json();
