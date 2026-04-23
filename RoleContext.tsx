@@ -87,7 +87,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
       // Map backend role names if necessary (backend uses arbitrary strings, frontend expects Role type)
       let mappedRole: Role = 'User';
       const roleStr = msgScaleRole.role.toUpperCase();
-      if (roleStr === 'ADMIN') mappedRole = 'Admin';
+      if (roleStr === 'ADMIN' || roleStr === 'SUPER_ADMIN') mappedRole = 'Admin';
       else if (roleStr === 'MANAGER') mappedRole = 'Manager';
       else if (roleStr === 'EDITOR') mappedRole = 'Editor';
 
